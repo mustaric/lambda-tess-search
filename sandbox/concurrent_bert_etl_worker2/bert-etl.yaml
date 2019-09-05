@@ -3,11 +3,11 @@ every_lambda:
   memory_size: 512
   requirements:
     - numpy
-  timeout: 900
+  timeout: 300
   environment:
-    DEBUG: "false"
+    DEBUG: "true"
     HOME: /tmp
-    AWSBUCKETNAME: stpubdata
+    AWSBUCKETNAME: ffi-lightcurves
     CACHEBUCKETNAME: ffi-lc-cache
 
   identity_encoders:
