@@ -6,38 +6,84 @@ imports are for local testing or packaging use only.
 Use ``bert.constants.AWS_LAMBDA_FUNCTION`` to check if function is running
 locally or in AWS.
 
+When the ``DEBUG`` environment variable is set to ``true``, test event can
+be run from Lambda dashboard, but it will not call the next Lambda because
+it will not write to DynamoDB. When ``DEBUG`` is ``false``, the whole thing
+will run but hardcoding the test case in the first function is necessary.
+
 """
 from bert import binding, constants, utils
 
 
 @binding.follow('noop')
+def bert_tess_fullframe_main_0():
+    """Farms out tasks for a list of TIC IDs."""
+
+    import os
+
+    import boto3
+
+    work_queue, done_queue, ologger = utils.comm_binders(
+        bert_tess_fullframe_main_0)
+
+    s3 = boto3.resource('s3')
+    homedir = os.environ.get('HOME')
+
+    # NOTE: See the note about DEBUG in module docstring.
+    work_queue = [{"bucket": "ffi-lc-cache",
+                   "key": "mullally_input_list_001.txt"}]
+
+    # Example event:
+    # {
+    #   "bucket": "my_bucket",
+    #   "key": "my_tic_id_list.csv"
+    # }
+    for event in work_queue:
+        bucketname = event['bucket']
+        bucket = s3.Bucket(name=bucketname)
+        key = event['key']
+        basename = os.path.basename(key)
+        filename = os.path.join(homedir, basename)
+
+        try:
+            ologger.info(f'Attempting to download {key} from {bucketname}')
+            bucket.download_file(
+                key, filename, ExtraArgs={"RequestPayer": "requester"})
+        except Exception as exc:
+            ologger.error(f'{basename}: {str(exc)}')
+            continue
+        else:
+            ologger.info(f'Parsing {filename}')
+            with open(filename) as fin:
+                fin.readline()  # Skip header
+                for line in fin:
+                    row = line.split()[0].split(',')
+                    tic_id = row[0]
+                    ologger.info(f'Processing {tic_id}')
+                    d = {'tic_id': tic_id,
+                         'radius': float(row[1]),
+                         'cutout_width': int(row[2])}
+                    done_queue.put(d)
+        finally:
+            # Clean up
+            os.remove(filename)
+
+
+@binding.follow(bert_tess_fullframe_main_0,
+                pipeline_type=constants.PipelineType.CONCURRENT)
 def bert_tess_fullframe_main_1():
     """Extract light curve data from TESS full frame images for a given
-    TESS observation ID.
+    TIC ID.
 
     This Lambda function loops through full frame images. For each full frame
     image, it invokes :func:`bert_tess_fullframe_worker`.
 
     """
-    import os
-
     from astropy.coordinates import SkyCoord
     from astroquery.mast import Catalogs, Tesscut
 
     work_queue, done_queue, ologger = utils.comm_binders(
         bert_tess_fullframe_main_1)
-
-    # TODO: Grab this from future higher level Lambda?
-    #
-    # NOTE: Hardcoding is necessary when DEBUG=false.
-    # When DEBUG=true, can use manual test event but cannot use DynamoDB
-    # streaming (i.e., worker will not be called automatically).
-    if os.environ.get('DEBUG', 'true') == 'false':
-        work_queue = [{
-            "tic_id": "25155310",
-            "radius": 2.5,
-            "cutout_width": 30
-        }]
 
     # https://exo.mast.stsci.edu/exomast_planet.html?planet=WASP126b
     # Example event:

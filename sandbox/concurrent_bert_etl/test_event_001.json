@@ -1,5 +1,4 @@
 {
-  "tic_id": "25155310",
-  "radius": 2.5,
-  "cutout_width": 30
+  "bucket": "ffi-lc-cache",
+  "key": "mullally_input_list_001.txt"
 }
