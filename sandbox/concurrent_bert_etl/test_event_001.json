@@ -1,4 +1,5 @@
 {
   "bucket": "ffi-lc-cache",
-  "key": "mullally_input_list_001.txt"
+  "key": "mullally_input_list_001.txt",
+  "use_cache": "true"
 }

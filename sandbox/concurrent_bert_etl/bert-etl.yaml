@@ -21,3 +21,8 @@ every_lambda:
   queue_decoders:
     - 'bert.encoders.numpy.decode_aws_object'
     - 'bert.encoders.base.decode_aws_object'
+
+bert_tess_fullframe_worker_2:
+  environment:
+    AWSBUCKETNAME: ffi-lightcurves
+    CACHEBUCKETNAME: ffi-lc-cache

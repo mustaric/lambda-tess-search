@@ -29,14 +29,17 @@ def bert_tess_fullframe_main_0():
     s3 = boto3.resource('s3')
     homedir = os.environ.get('HOME')
 
+    # TODO: How to run the full workflow without hardcoding the input here?
     # NOTE: See the note about DEBUG in module docstring.
     work_queue = [{"bucket": "ffi-lc-cache",
-                   "key": "mullally_input_list_001.txt"}]
+                   "key": "mullally_input_list_001.txt",
+                   "use_cache": "true"}]
 
     # Example event:
     # {
     #   "bucket": "my_bucket",
-    #   "key": "my_tic_id_list.csv"
+    #   "key": "my_tic_id_list.csv",
+    #   "use_cache": "true"
     # }
     for event in work_queue:
         bucketname = event['bucket']
@@ -62,7 +65,8 @@ def bert_tess_fullframe_main_0():
                     ologger.info(f'Processing {tic_id}')
                     d = {'tic_id': tic_id,
                          'radius': float(row[1]),
-                         'cutout_width': int(row[2])}
+                         'cutout_width': int(row[2]),
+                         'use_cache': event['use_cache']}
                     done_queue.put(d)
         finally:
             # Clean up
@@ -90,7 +94,8 @@ def bert_tess_fullframe_main_1():
     # {
     #   "tic_id": "25155310",
     #   "radius": 2.5,
-    #   "cutout_width": 30
+    #   "cutout_width": 30,
+    #   "use_cache": "true"
     # }
     for event in work_queue:
         tic_id = event['tic_id']
@@ -113,7 +118,8 @@ def bert_tess_fullframe_main_1():
                 'ra': ra,
                 'dec': dec,
                 'radius': event['radius'],
-                'cutout_width': event['cutout_width']
+                'cutout_width': event['cutout_width'],
+                'use_cache': event['use_cache']
             })
 
 
@@ -145,7 +151,8 @@ def bert_tess_fullframe_main_2():
     #   "ra": 63.3739396231274,
     #   "dec": -69.226822697583,
     #   "radius": 2.5,
-    #   "cutout_width": 30
+    #   "cutout_width": 30,
+    #   "use_cache": "true"
     # }
     #
     # work_queue populated by calling Lambda
@@ -158,6 +165,7 @@ def bert_tess_fullframe_main_2():
 
         try:
             # Check if URI list already cached.
+            # According to MAST, there is no need to invalidate cache here.
             ologger.info(f'Attempting to download {basename} from S3')
             outbucket.download_file(
                 basename, filename,
@@ -245,7 +253,7 @@ def bert_tess_fullframe_main_2():
                 'ypos': ypos,
                 'radius': radius,
                 'cutout_width': event['cutout_width'],
-                'use_cache': 'false'})
+                'use_cache': event['use_cache']})
 
 
 @binding.follow(bert_tess_fullframe_main_2,
@@ -265,7 +273,7 @@ def bert_tess_fullframe_worker_1():
 
     np.seterr(all='ignore')
 
-    # Function to calculate circular mask.
+    # Function to calculate circular and square masks.
     # https://stackoverflow.com/questions/49330080/numpy-2d-array-selecting-indices-in-a-circle
     def get_masks(arr_shape, cx, cy, r, w):
         y = np.arange(arr_shape[0])
@@ -378,6 +386,151 @@ def bert_tess_fullframe_worker_1():
         try:
             outbucket.upload_file(outfilename, s3key,
                                   ExtraArgs={"RequestPayer": "requester"})
+        except Exception as exc:
+            ologger.error(str(exc))
+        else:
+            ologger.info(f'Uploaded {s3key} to S3')
+            done_queue.put({
+                'tic_id': tic_id,
+                'sec_id': sec_id,
+                'radius': radius,
+                'cutout_width': cutout_width,
+                'use_cache': event['use_cache']})
+        finally:
+            # Clean up
+            os.remove(outfilename)
+
+
+@binding.follow(bert_tess_fullframe_worker_1,
+                pipeline_type=constants.PipelineType.BOTTLE)
+def bert_tess_fullframe_worker_2():
+    """Collect light curve data from individual full frame images.
+    Use the data to build a light curve file.
+    Then, upload the file to S3 bucket.
+
+    .. note:: Do not deploy from ``concurrent_bert_etl_worker2``
+              folder anymore.
+
+    TESS FFI Light Curve Format documented at
+    https://archive.stsci.edu/missions/tess/doc/EXP-TESS-ARC-ICD-TM-0014.pdf#page=32
+
+    """
+    import os
+    from datetime import datetime
+
+    import boto3
+    from astropy.table import Table
+
+    work_queue, done_queue, ologger = utils.comm_binders(
+        bert_tess_fullframe_worker_2)
+
+    s3 = boto3.resource('s3')
+    inbucket = s3.Bucket(name=os.environ.get('CACHEBUCKETNAME'))
+    bucket_name = os.environ.get('AWSBUCKETNAME')
+    bucket = s3.Bucket(name=bucket_name)
+    homedir = os.environ.get('HOME')
+
+    # Example event:
+    # {
+    #   "tic_id": "25155310",
+    #   "sec_id": "s0001-4-1"
+    #   "radius": 2.5,
+    #   "cutout_width": 30,
+    #   "use_cache": "true"
+    # }
+    #
+    # work_queue populated by calling Lambda
+    for event in work_queue:
+        tic_id = event['tic_id']
+        sec_id = event['sec_id']
+        radius = float(event['radius'])
+        cutout_width = int(event['cutout_width'])
+
+        in_pfx = f'tic{tic_id:0>12}/{sec_id}/r{radius}/w{cutout_width}'
+        basename = f'tic{tic_id:0>12}_{sec_id}_lcc.fits'
+        s3key = f'tic{tic_id:0>12}/{basename}'
+        outfilename = os.path.join(homedir, basename)
+
+        # Use cached LC generated by previous run and skip recalculations.
+        # Skipping also means BLS Lambda listening for S3 upload will not run.
+        use_cache = event['use_cache'] == 'true'
+
+        # If this output exists and user wants to use the cache, there is
+        # nothing to do.
+        if use_cache:
+            try:
+                s3.Object(bucket_name, s3key).load()
+            except Exception:  # Does not exist
+                pass
+            else:  # It exists; nothing to do
+                ologger.info(f'{s3key} exists, skipping...')
+                continue
+
+        sec_id_split = sec_id.split('-')
+        sector = int(sec_id_split[0][1:])
+        camera = int(sec_id_split[1])
+        ccd = int(sec_id_split[2])
+
+        # Table header
+        lc_meta = {
+            'TELESCOP': 'TESS',
+            'CAMERA': camera,
+            'SECTOR': sector,
+            'CCD': ccd,
+            'OBJECT': f'TIC {tic_id}',
+            'RADESYS': 'ICRS',
+            'AP_RAD': radius,
+            'SKYWIDTH': cutout_width,
+            'DATE': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')}
+
+        # f4 = np.float32, f8 = np.float64, i4 = np.int32
+        lc_tab = Table(names=('TIME', 'SAP_FLUX', 'SAP_BKG', 'QUALITY'),
+                       dtype=('f8', 'f4', 'f4', 'i4'),
+                       meta=lc_meta)
+
+        # Grab all the light curve data points and piece them together.
+        for obj in inbucket.objects.filter(
+                Prefix=in_pfx, RequestPayer='requester'):
+            filename = os.path.join(homedir, os.path.basename(obj.key))
+            inbucket.download_file(
+                obj.key, filename, ExtraArgs={"RequestPayer": "requester"})
+
+            with open(filename, 'r') as fin:
+                row = fin.read().split(',')
+
+            # Clean up
+            os.remove(filename)
+
+            midtime = float(row[0])
+            signal = float(row[1])
+            background = float(row[2])
+            dqflag = int(row[3])
+            xpos = int(row[4])
+            ypos = int(row[5])
+            ra = float(row[6])
+            dec = float(row[7])
+
+            lc_tab.add_row((midtime, signal, background, dqflag))
+
+        # Sort table by observation time.
+        lc_tab.sort('TIME')
+
+        # More metadata
+        lc_tab.meta.update({
+            'RA_OBJ': ra,
+            'DEC_OBJ': dec,
+            'APCEN_X': xpos,
+            'APCEN_Y': ypos})
+
+        # Write locally to FITS table.
+        # Table data and metadata will go to EXT 1.
+        lc_tab.write(outfilename, format='fits')
+        ologger.info(f'Light curve [{outfilename}] with {len(lc_tab)} pts')
+
+        # Upload to S3 bucket.
+        try:
+            bucket.upload_file(
+                outfilename, s3key, ExtraArgs={"RequestPayer": "requester"})
         except Exception as exc:
             ologger.error(str(exc))
         else:
