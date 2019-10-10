@@ -10,6 +10,8 @@ from astropy.timeseries import BoxLeastSquares
 import numpy as np
 from astropy.convolution import convolve, Box1DKernel
 
+#import matplotlib.pyplot as plt
+
 
 def clean_timeseries(time, flux, qflags, det_window, noise_window, n_sigma):
     
@@ -19,9 +21,20 @@ def clean_timeseries(time, flux, qflags, det_window, noise_window, n_sigma):
     
     flagged = bad | qbad  #Indicate bad data
     med_det = median_detrend(flux, det_window, flagged)
-    good_time = time[~flagged]
+    det_time = time[~flagged]
     
-    return good_time, med_det
+    #Look for 3 bad sections on length of around 2 days (window = 90)
+    std_bad = running_std_gap(med_det, 70, N=3, ntimes=3)
+    #print(len(std_bad[std_bad]))
+    
+    good_time = det_time[~std_bad]
+    good_flux = med_det[~std_bad]
+    
+    #plt.figure()
+    #plt.plot(time,flux/np.nanmedian(flux) - 1, 'ko')
+    #plt.plot(good_time, good_flux, 'r.')
+    
+    return good_time, good_flux
 
 def median_detrend(flux,window, gap):
     """
@@ -67,6 +80,43 @@ def is_odd(num):
    return num % 2 != 0
 
 
+def running_std_gap(flux, window, N=3, ntimes=3):
+    """
+    for specified window, determine data chunks that are parts of sections
+    of the data that have std ntimes larger than the overall std. only pulls
+    out N sections.
+    
+    Returns isbad array of 1 and 0 where 1 means bad data and 0 means clean
+    Be sure to set a wide enough window so you don't throw away planets.
+    Probably N*duration(in points) of longest transit expected.
+    """
+    gap = np.zeros(len(flux))
+    
+    std_array = np.zeros(len(flux))
+    
+    
+    for i in range(window, len(flux), 1):
+        
+        f = flux[i-window:i]
+        std_array[i] = np.nanstd(f)
+    
+    #plt.figure()
+    #plt.plot(std_array,'.')
+    
+    med_std = np.median(std_array)
+    #print("mean std: %f" % med_std)
+    
+    argsort = np.argsort(std_array)
+    
+    for i in argsort[-1*N:]:
+        if std_array[i] > med_std * N:
+            gap[i-window:i] = 1
+            
+    isbad = gap == 1
+    
+    return isbad
+        
+
 def calcBls(flux,time, bls_durs, minP=None, maxP=None, min_trans=3):
     """
     Take a bls and return the spectrum.
@@ -97,12 +147,14 @@ def findBlsSignal(time, flux, bls_durations, minP=None, maxP=None, min_trans=3):
 def simpleSnr(time,flux,results):
     """
     calculate a simple snr on the planet based on the depth and scatter
+    after you remove the planet model from the data.
     """
     
     model = BoxLeastSquares(time,flux)
     fmodel =  model.model(time,results[0],results[3],results[1])
     noise = np.std(flux-fmodel)
     snr = results[2]/noise
+    
     return snr
     
 def identifyTces(time, flux, bls_durs_hrs=[1,2,4,8,12], minSnr=3, fracRemain=0.5, \
@@ -116,7 +168,7 @@ def identifyTces(time, flux, bls_durs_hrs=[1,2,4,8,12], minSnr=3, fracRemain=0.5
     
     returns period, t0, depth, duration, snr for each signal found.
     """
-    print(maxTces)
+    
     keepLooking = True
     counter = 0
     results = []
@@ -126,15 +178,14 @@ def identifyTces(time, flux, bls_durs_hrs=[1,2,4,8,12], minSnr=3, fracRemain=0.5
     t=time.copy()
     f=flux.copy()
     
-    #print(t[0:10])
-    #print(f[0:10])
-    
+
     while keepLooking:
         
         bls_results = findBlsSignal(t, f, bls_durs_day, minP=minP, maxP=maxP)
         #print(bls_results)
-        bls_results[4] = simpleSnr(time,flux,bls_results)
         #simple ssnr because the BLS depth snr is acting strangely
+        bls_results[4] = simpleSnr(t, f, bls_results)
+        
         
         results.append(bls_results)
         bls = BoxLeastSquares(t,f)
@@ -143,10 +194,13 @@ def identifyTces(time, flux, bls_durs_hrs=[1,2,4,8,12], minSnr=3, fracRemain=0.5
         #signal_snr = bls_stats['depth'][0]/bls_stats['depth'
         transit_mask = bls.transit_mask(t, bls_results[0],\
                                         bls_results[3]*1.1, bls_results[1])
+        #plt.figure()
+        #plt.plot(t,f,'ko',ms=3)
         
         t=t[~transit_mask]
         f=f[~transit_mask]
         
+        #plt.plot(t,f,'r.')
         
         if (len(t)/len(time) > fracRemain) & \
                (bls_results[4] >= minSnr) & \
@@ -157,8 +211,6 @@ def identifyTces(time, flux, bls_durs_hrs=[1,2,4,8,12], minSnr=3, fracRemain=0.5
             
         else:          
             keepLooking = False
-            print(len(t)/len(time))
-            print(counter)
  
 
     return np.array(results), np.array(stats)

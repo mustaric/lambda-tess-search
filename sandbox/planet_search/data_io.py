@@ -39,8 +39,8 @@ def read_lightcurve_tasoc(bucket, bucket_filename, local_filename):
 
 
 def read_lightcurve(filename):
-    data = fits.getdata(local_filename, 1)
-    head = fits.getheader(local_filename, 1)
+    data = fits.getdata(filename, 1)
+    head = fits.getheader(filename, 1)
     time = data['TIME']
     flux = data['SAP_FLUX']
     qflags = data['QUALITY']
@@ -51,7 +51,7 @@ def read_lightcurve_lambda(bucket, bucket_filename, local_filename):
     """
     read in lambda generated light curves.
     """
-    
+
     s3 = boto3.resource('s3')
     bucket = s3.Bucket(bucket)
     
@@ -80,7 +80,7 @@ def read_lightcurve_lambda_local(bucket, bucket_filename, local_filename):
 
 def write_results(filename, ticid, results, stats, **kwargs):
     
-    header ='bls_period_day,bls_t0_btjd, bls_depth_frac, \
+    header ='bls_period_day,bls_t0_btjd, bls_depth_frac,\
             bls_duration_day, bls_snr, n_trans_good, tic.pn'
     info_array=np.zeros([len(stats),7])
     #info_array[:,6] = ticid
