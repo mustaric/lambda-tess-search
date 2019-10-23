@@ -20,7 +20,7 @@ import os
 
 METADATA_FILE = 'metadata.json'
 
-def makeStrawName(path, campaign, camera, ccd, col, row):
+def makeStrawName(path, sector, camera, ccd, col, row):
     """Constructh the straw name
 
     Does no testing to ensure the input parameters are sane
@@ -29,7 +29,7 @@ def makeStrawName(path, campaign, camera, ccd, col, row):
     ---------
     path
         (str) Location of file on disk/s3
-    campaign, camera, ccd, col, row,
+    sector, camera, ccd, col, row,
         (int) Parameters of the straw file
 
     Returns
@@ -37,7 +37,7 @@ def makeStrawName(path, campaign, camera, ccd, col, row):
     A string
     """
     path = os.path.join(path,
-                        "campaign%02i" %(campaign),
+                        "sector%02i" %(sector),
                         "camera%i" %(camera),
                         "ccd%i" %(ccd))
 
