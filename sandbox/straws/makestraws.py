@@ -11,7 +11,7 @@ TODO
 x Save metadata to output directory
 x Function to read metadata
 o Load straws should figure out if its searching on s3
-o Straw names should include campaign
+o Straw names should include sector
 o Docstrings
 o Investigate async to speed writing the straws
 o Add more info to metadata file
@@ -34,7 +34,7 @@ Datacube
 
 Straw
     A datacube consisting of a small postage stamp image from each an every
-    FFI in a campaign.
+    FFI in a sector.
 
 Camera, CCD, col, row
     This 4-tuple uniquely identifies a pixel on the TESS focal plane.
@@ -68,38 +68,40 @@ from common import makeStrawName
 
 
 class MakeTessStraw(object):
-    def __init__(self, ffiPath, outPath, campaign):
+    def __init__(self, ffiPath, outPath, sector, camera, ccd):
         """
         Inputs
         ----------
         ffiPath
             (str) Path to FFI files on local disk. This path can contain
             FFIs from mulitple ccds or cameras, but can only contain FFIs
-            from a single campaign.
+            from a single sector.
 
         outPath
             (str) Location on local disk to store straws
-        campaign
-            (int) Campaign number to process
+        sector
+            (int) sector number to process
         """
 
         self.outPath = outPath
         self.ffiPath = ffiPath
-        self.campaign = campaign
+        self.sector = sector
+        self.camera = camera
+        self.ccd = ccd
         self.strawSize = 100
 
-        #The campaign version string is part of the FFI filename
-        campaignVersion= {1:120, 3:123}
+        #The sector version string is part of the FFI filename
+        sectorVersion= {1:120, 3:123}
         try:
-            self.dataVersion = campaignVersion[campaign]
+            self.dataVersion = sectorVersion[sector]
         except IndexError:
-            raise IndexError("campaignVersion string not hardcoded for this sector/campaign yet")
+            raise IndexError("sectorVersion string not hardcoded for this sector yet")
 
         #These must be set in this order
         self.datestampList = self.loadDatestamps()
         self.nColsRows = self.getFfiShape()
 
-        self.do()
+        self.do(camera, ccd)
 
     def loadDatestamps(self):
         """Load a list of datestamps from all the FFIs in `ffiPath`
@@ -178,7 +180,7 @@ class MakeTessStraw(object):
             the bottom-left corner of the straw.
         """
         path, fn = makeStrawName(self.outPath,
-                                 self.campaign,
+                                 self.sector,
                                  camera,
                                  ccd,
                                  col,
@@ -218,7 +220,7 @@ class MakeTessStraw(object):
         datestamp = self.datestampList[cadenceNum]
 
         fn = "tess%s-s%04i-%i-%i-%04i-s_ffic.fits" \
-            %(datestamp, self.campaign, camera, ccd, self.dataVersion)
+            %(datestamp, self.sector, camera, ccd, self.dataVersion)
         return os.path.join(self.ffiPath, fn)
 
     def saveMetadata(self):
