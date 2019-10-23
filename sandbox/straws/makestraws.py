@@ -126,12 +126,15 @@ class MakeTessStraw(object):
 
 
     def do(self, camera, ccd):
+        self.saveMetadata()
+
         nCols, nRows= self.nColsRows
 
         for i in range(0, nCols, self.strawSize):
             for j in range(0, nRows, self.strawSize):
                 straw = self.makeStraw(camera, ccd, i, j)
                 self.writeStraw(straw, camera, ccd, i, j)
+
 
     def getFfiShape(self):
         """Get the num cols and rows from the FFI header"""
