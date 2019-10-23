@@ -131,6 +131,7 @@ class MakeTessStraw(object):
         nCols, nRows= self.nColsRows
 
         for i in range(0, nCols, self.strawSize):
+            print("Processing column %i" %(i))
             for j in range(0, nRows, self.strawSize):
                 straw = self.makeStraw(camera, ccd, i, j)
                 self.writeStraw(straw, camera, ccd, i, j)
