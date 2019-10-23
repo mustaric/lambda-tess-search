@@ -89,8 +89,11 @@ class MakeTessStraw(object):
         self.strawSize = 100
 
         #The campaign version string is part of the FFI filename
-        campaignVersion= {3:123}
-        self.dataVersion = campaignVersion[campaign]
+        campaignVersion= {1:120, 3:123}
+        try:
+            self.dataVersion = campaignVersion[campaign]
+        except IndexError:
+            raise IndexError("campaignVersion string not hardcoded for this sector/campaign yet")
 
         #These must be set in this order
         self.datestampList = self.loadDatestamps()
