@@ -1,0 +1,228 @@
+# -*- coding: utf-8 -*-
+# Copyright 2017-2018 Orbital Insight Inc., all rights reserved.
+# Contains confidential and trade secret information.
+# Government Users: Commercial Computer Software - Use governed by
+# terms of Orbital Insight commercial license agreement.
+
+"""
+Created on Fri Aug 16 19:25:37 2019
+
+TODO
+x Save metadata to output directory
+x Function to read metadata
+o Load straws should figure out if its searching on s3
+o Straw names should include campaign
+o Docstrings
+o Investigate async to speed writing the straws
+o Add more info to metadata file
+o Straw maker may not deal with edges of the ccd correctly
+o Is npy the best format for writing straws?
+o Do I need to save a time file?
+
+@author: fergal
+
+
+Concepts
+-----------
+FFI
+    Full Frame Image. A single image from a single camera/ccd taken by
+    TESS. Typically, we only want a small postage stamp from each FFI,
+    but we want that postage stamp for many FFIs
+
+Datacube
+    A 3d numpy array, where each row is an image.
+
+Straw
+    A datacube consisting of a small postage stamp image from each an every
+    FFI in a campaign.
+
+Camera, CCD, col, row
+    This 4-tuple uniquely identifies a pixel on the TESS focal plane.
+
+This module contains a class to collect all the imagery from a set of FFIs,
+and create straws that tile the entire viewing area, then another class
+to construct a datacube from those tiles.
+
+This serves the use case where you want to get all the imagery across all
+FFIs for a single star. By dividing up the data this way we can minimise
+the time spent on reading files, and downloading data. As such it is an
+excellent approach for accessing data on single stars from s3 using an
+AWS Lambda.
+
+"""
+
+from __future__ import print_function
+from __future__ import division
+
+from pdb import set_trace as debug
+import numpy as np
+import os
+
+import astropy.io.fits as pyfits
+from glob import glob
+import json
+
+from common import  METADATA_FILE
+from common import makeStrawName
+
+
+
+class MakeTessStraw(object):
+    def __init__(self, ffiPath, outPath, campaign):
+        """
+        Inputs
+        ----------
+        ffiPath
+            (str) Path to FFI files on local disk. This path can contain
+            FFIs from mulitple ccds or cameras, but can only contain FFIs
+            from a single campaign.
+
+        outPath
+            (str) Location on local disk to store straws
+        campaign
+            (int) Campaign number to process
+        """
+
+        self.outPath = outPath
+        self.ffiPath = ffiPath
+        self.campaign = campaign
+        self.strawSize = 100
+
+        #The campaign version string is part of the FFI filename
+        campaignVersion= {3:123}
+        self.dataVersion = campaignVersion[campaign]
+
+        #These must be set in this order
+        self.datestampList = self.loadDatestamps()
+        self.nColsRows = self.getFfiShape()
+
+        self.do()
+
+    def loadDatestamps(self):
+        """Load a list of datestamps from all the FFIs in `ffiPath`
+
+        Look in the directory `self.ffiPath`, find all the FFI files,
+        and extract their datestamps. It would be nice is those were also
+        the observation times, but this is the SPOC, so they aren't.
+
+        The datestamps are used for loading the right file from disk
+        """
+        pattern = "tess*ffic.fits"
+        pattern = os.path.join(self.ffiPath, pattern)
+        fileList = glob(pattern)
+        assert len(fileList) > 0
+
+        f = lambda x: os.path.split(x)[-1].split('-')[0][4:]
+        datestamps = map( f, fileList)
+
+        datestamps = sorted(list(set(datestamps)))
+        assert len(datestamps) > 0
+        return datestamps
+
+
+    def do(self, camera, ccd):
+        nCols, nRows= self.nColsRows
+
+        for i in range(0, nCols, self.strawSize):
+            for j in range(0, nRows, self.strawSize):
+                straw = self.makeStraw(camera, ccd, i, j)
+                self.writeStraw(straw, camera, ccd, i, j)
+
+    def getFfiShape(self):
+        """Get the num cols and rows from the FFI header"""
+        ffiName = self.getFfiName(0, 4, 4)
+        hdr = pyfits.getheader(ffiName, 1)
+        nCols = hdr['NAXIS1']
+        nRows = hdr['NAXIS2']
+
+        return nCols, nRows
+
+    def makeStraw(self, camera, ccd, col, row):
+        """Make a straw at the requested location
+
+        Inputs
+        -------------
+        camera, ccd, col, row
+            (int) Properties of the straw. col and row refer to coordinates of
+            the bottom-left corner of the straw.
+
+        Returns
+        ---------
+        np 3d array
+        """
+        nCol, nRow = self.strawSize, self.strawSize
+        nCadence = len(self.datestampList)
+        out = np.empty( (nCadence, nRow, nCol) )
+
+        for i in range(nCadence):
+            ffiName = self.getFfiName(i, camera, ccd)
+            frame = self.readFfiSection(ffiName, col, row)
+            nr, nc = frame.shape
+            out[i,:nr,:nc] = frame
+        return out
+
+    def writeStraw(self, straw, camera, ccd, col, row):
+        """
+        Write a straw to disk
+
+        Inputs
+        -----------
+        straw
+            (3d npy array) The data to save
+
+        camera, ccd, col, row
+            (int) Properties of the straw. col and row refer to coordinates of
+            the bottom-left corner of the straw.
+        """
+        path, fn = makeStrawName(self.outPath,
+                                 self.campaign,
+                                 camera,
+                                 ccd,
+                                 col,
+                                 row)
+
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        fn = "straw-%i-%i-%03i-%03i.npy" %(camera, ccd, col, row)
+        fn = os.path.join(path, fn)
+        np.save(fn, straw)
+
+    def readFfiSection(self, ffiName, col, row):
+        """Read a postage stamp from an FFI file
+
+        This is by far the most expensive function in the class
+        and optimisation efforts should focus here
+        """
+
+        hdulist = pyfits.open(ffiName, memmap=True)
+
+        img = hdulist[1]
+        slCol = slice(col, col + self.strawSize)
+        slRow = slice(row, row + self.strawSize)
+        data = img.section[slRow, slCol]
+
+        hdulist.close()
+        return data
+
+    def getFfiName(self, cadenceNum, camera, ccd):
+        """Construct the path to an FFI on local disk
+
+        Raises an index error if `cadenceNum` is out of bounds on the
+        list of FFIs available
+        """
+
+        datestamp = self.datestampList[cadenceNum]
+
+        fn = "tess%s-s%04i-%i-%i-%04i-s_ffic.fits" \
+            %(datestamp, self.campaign, camera, ccd, self.dataVersion)
+        return os.path.join(self.ffiPath, fn)
+
+    def saveMetadata(self):
+        """Save a metadata file to a local filestore
+        """
+        fn = os.path.join(self.outPath, METADATA_FILE)
+        text = json.dumps(self.__dict__, indent=2)
+        with open(fn, 'w') as fp:
+            fp.write(text)
+
