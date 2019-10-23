@@ -135,7 +135,7 @@ class MakeTessStraw(object):
 
     def getFfiShape(self):
         """Get the num cols and rows from the FFI header"""
-        ffiName = self.getFfiName(0, 4, 4)
+        ffiName = self.getFfiName(0, self.camera, self.ccd)
         hdr = pyfits.getheader(ffiName, 1)
         nCols = hdr['NAXIS1']
         nRows = hdr['NAXIS2']
