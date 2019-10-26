@@ -90,8 +90,9 @@ class LoadTessCube(object):
             min_size_pix = self.strawSize
 
         c0, c1, r0, r1 = self.pickBbox(col, row, min_size_pix)
-        imageSize = c1 - c0
-        image = np.empty( (self.nCadences, imageSize, imageSize) )
+        colSize = c1 - c0
+        rowSize = r1 - r0
+        image = np.empty( (self.nCadences, rowSize, colSize) )
 
         ds = self.strawSize
         for i in range(c0, c1, ds):
