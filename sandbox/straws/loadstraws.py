@@ -14,14 +14,12 @@ from __future__ import print_function
 from __future__ import division
 
 from pdb import set_trace as debug
-#import matplotlib.pyplot as plt
-#import matplotlib.patches as mpatch
-#import matplotlib as mpl
-#import pandas as pd
+from boto.s3.connection import S3Connection
 
 import numpy as np
 import json
 import os
+import io
 
 import common
 
@@ -36,6 +34,12 @@ class LoadTessCube(object):
         if path is not None:
             self.path = path
             self.loadMetadata()
+
+    def __repr__(self):
+        return "<TessCube object for sector %s. Data at %s>" %(self.sector, self.path)
+
+    def __call__(self, camera, ccd, col, row):
+        return self.get(camera, ccd, col, row, 20)
 
     def loadMetadata(self):
         """Load metadata on the straws stored in `path`
@@ -74,7 +78,7 @@ class LoadTessCube(object):
 
         Returns
         -----------
-        image
+        cube
             (np 3d array) of shape (nCadence, nRows, nCols)
         target_col, target_row
             (float) The index in `image` corresponding to (`col`, `row`).
@@ -171,7 +175,7 @@ class LoadTessCube(object):
 
         """
         longPath, fn = common.makeStrawName(self.path,
-                                 self.campaign,
+                                 self.sector,
                                  camera,
                                  ccd,
                                  col,
@@ -179,7 +183,7 @@ class LoadTessCube(object):
 
 
 
-        straw = self.loadStrawFromURI(self, longPath, fn)
+        straw = self.loadStrawFromUri(longPath, fn)
         return straw
 
     def getMetadataUrl(self):
@@ -197,8 +201,6 @@ class LoadTessCube(object):
 
 
 
-from boto.s3.connection import S3Connection
-import io
 def LoadTessCubeS3(LoadTessCube):
     """Load straws from S3 instead of a local disk"""
 
