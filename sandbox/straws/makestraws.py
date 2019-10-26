@@ -88,7 +88,7 @@ class MakeTessStraw(object):
         self.camera = camera
         self.ccd = ccd
         self.strawSize = 50
-        self.midTimes_tbjd = None #Will be filled in later
+        self.midtimes_tbjd = None #Will be filled in later
 
         #The sector version string is part of the FFI filename
         sectorVersion= {1:120, 3:123}

@@ -55,6 +55,14 @@ class LoadTessCube(object):
         self.nCols, self.nRows = self.nColsRows
         self.nCadences = len(self.datestampList)
 
+    def getMidTimestamps(self):
+        try:
+            timestamps = self.midtimes_tbjd
+        except AttributeError:
+            raise AttributeError("metadata doesn't contain timestamps")
+            
+        return np.array(timestamps)
+    
     def get(self, camera, ccd, col, row, min_size_pix=None):
         """Get a data cube
 
