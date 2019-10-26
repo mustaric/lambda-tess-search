@@ -56,6 +56,11 @@ class LoadTessCube(object):
         self.nCadences = len(self.datestampList)
 
     def getMidTimestamps(self):
+        """Return the cadence mid times as stored in the metadata
+        
+        See make straws for the details of how this value is calculated
+        """
+        
         try:
             timestamps = self.midtimes_tbjd
         except AttributeError:
