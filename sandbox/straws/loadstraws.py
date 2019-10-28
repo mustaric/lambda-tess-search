@@ -237,7 +237,7 @@ def LoadTessCubeS3(LoadTessCube):
     def getMetadataUri(self):
        return os.path.join("s3://", self.bucket, self.path, common.METADATA_FILE)
 
-    def loadStrawFromUril(self, path, fn):
+    def loadStrawFromUri(self, path, fn):
         #boto stuff goes here
         uri = os.path.join(path, fn)
         strr = self.bucket.get_key(uri).get_contents_as_string()
