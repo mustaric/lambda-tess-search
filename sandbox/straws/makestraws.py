@@ -14,7 +14,7 @@ x Load straws should figure out if its searching on s3
 x Straw names should include sector
 x Docstrings
 x Investigate async to speed writing the straws
-o Add more info to metadata file
+x Add more info to metadata file
 o Straw maker may not deal with edges of the ccd correctly
 o Is npy the best format for writing straws?
 x Do I need to save a time file?
