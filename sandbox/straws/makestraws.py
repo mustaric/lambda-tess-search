@@ -17,7 +17,7 @@ x Investigate async to speed writing the straws
 o Add more info to metadata file
 o Straw maker may not deal with edges of the ccd correctly
 o Is npy the best format for writing straws?
-o Do I need to save a time file?
+x Do I need to save a time file?
 
 @author: fergal
 
@@ -60,6 +60,9 @@ import os
 
 import astropy.io.fits as pyfits
 from glob import glob
+import collections
+import datetime
+import inspect
 import json
 
 from common import  METADATA_FILE
@@ -82,11 +85,16 @@ class MakeTessStraw(object):
             (int) sector number to process
         """
 
+        #The order these variables are defined should (not not definitely)
+        #be reproduced in the json stored metadata. Hence a couple of 
+        #items are defined before their values are known.
         self.outPath = outPath
         self.ffiPath = ffiPath
         self.sector = sector
         self.camera = camera
         self.ccd = ccd
+        self.nColsRows = None  #See note above
+        self.dataVersion = None
         self.strawSize = 50
         self.midtimes_tbjd = None #Will be filled in later
         self.qualityFlags = None
@@ -134,7 +142,7 @@ class MakeTessStraw(object):
             for j in range(0, nRows, self.strawSize):
                 straw, times, flags = self.makeStraw(camera, ccd, i, j)
                 self.writeStraw(straw, camera, ccd, i, j)
-
+        
         #Convert times, flags to JSON serializable lists
         self.midtimes_tbjd = list(times)
         self.qualityFlags = list(map(int, flags))
@@ -246,7 +254,18 @@ class MakeTessStraw(object):
         """
 
         fn = os.path.join(self.outPath, "sector%02i" %(self.sector), METADATA_FILE)
-        text = json.dumps(self.__dict__, indent=2)
+
+        frame = inspect.currentframe().f_back
+        (filename, lineno, funcname, _, _) = inspect.getframeinfo(frame)
+        params = collections.OrderedDict()
+
+        params['__file__'] = filename
+        params['__lineno__'] = lineno
+        params['__date__'] = str(datetime.datetime.now())
+        params['__user__'] = os.environ['USER']
+        
+        params.update(self.__dict__)
+        text = json.dumps(params, indent=2)
         with open(fn, 'w') as fp:
             fp.write(text)
 
