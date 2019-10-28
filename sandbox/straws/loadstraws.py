@@ -67,6 +67,10 @@ class LoadTessCube(object):
             raise AttributeError("metadata doesn't contain timestamps")
             
         return np.array(timestamps)
+
+    def getRelativeCadenceNumbers(self):
+        """Return a integers from zero to length of datacube"""
+        return np.arange(self.nCadences, dtype=int)
     
     def get(self, camera, ccd, col, row, min_size_pix=None):
         """Get a data cube
