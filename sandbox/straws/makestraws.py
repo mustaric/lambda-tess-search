@@ -134,7 +134,6 @@ class MakeTessStraw(object):
             for j in range(0, nRows, self.strawSize):
                 straw, times, flags = self.makeStraw(camera, ccd, i, j)
                 self.writeStraw(straw, camera, ccd, i, j)
-            break
 
         #Convert times, flags to JSON serializable lists
         self.midtimes_tbjd = list(times)
