@@ -89,6 +89,7 @@ class MakeTessStraw(object):
         self.ccd = ccd
         self.strawSize = 50
         self.midtimes_tbjd = None #Will be filled in later
+        self.qualityFlags = None
 
         #The sector version string is part of the FFI filename
         sectorVersion= {1:120, 3:123}
@@ -131,11 +132,13 @@ class MakeTessStraw(object):
         for i in range(0, nCols, self.strawSize):
             print("Processing column %i" %(i))
             for j in range(0, nRows, self.strawSize):
-                straw, times = self.makeStraw(camera, ccd, i, j)
+                straw, times, flags = self.makeStraw(camera, ccd, i, j)
                 self.writeStraw(straw, camera, ccd, i, j)
             break
 
-        self.midtimes_tbjd = times
+        #Convert times, flags to JSON serializable lists
+        self.midtimes_tbjd = list(times)
+        self.qualityFlags = list(map(int, flags))
         self.saveMetadata()
 
 
@@ -165,14 +168,18 @@ class MakeTessStraw(object):
         nCadence = len(self.datestampList)
         straw = np.empty( (nCadence, nRow, nCol) )
         midtimes_tbjd = np.empty(nCadence)
+        flags = np.empty(nCadence, dtype=int)
 
         for i in range(nCadence):
             ffiName = self.getFfiName(i, camera, ccd)
-            frame, time = self.readFfiSection(ffiName, col, row)
+            frame, time, flagValue = self.readFfiSection(ffiName, col, row)
             nr, nc = frame.shape
             straw[i,:nr,:nc] = frame
+
             midtimes_tbjd[i] = time
-        return straw, midtimes_tbjd
+            flags[i] = flagValue
+            
+        return straw, midtimes_tbjd, flags
 
     def writeStraw(self, straw, camera, ccd, col, row):
         """
@@ -217,9 +224,10 @@ class MakeTessStraw(object):
         tstart = img.header['TSTART']
         tend = img.header['TSTOP']
         midtime_tbjd = .5 * (tstart + tend)
+        flag = img.header['DQUALITY']
 
         hdulist.close()
-        return data, midtime_tbjd
+        return data, midtime_tbjd, flag 
 
     def getFfiName(self, cadenceNum, camera, ccd):
         """Construct the path to an FFI on local disk
@@ -237,10 +245,8 @@ class MakeTessStraw(object):
     def saveMetadata(self):
         """Save a metadata file to a local filestore
         """
-        #Convert to a JSON serialisable list
-        self.midtimes_tbjd = list(self.midtimes_tbjd)
 
-        fn = os.path.join(self.outPath, METADATA_FILE)
+        fn = os.path.join(self.outPath, "sector%02i" %(self.sector), METADATA_FILE)
         text = json.dumps(self.__dict__, indent=2)
         with open(fn, 'w') as fp:
             fp.write(text)
