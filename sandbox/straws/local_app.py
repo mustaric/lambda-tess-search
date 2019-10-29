@@ -34,7 +34,7 @@ def lambda_handler(event, context):
     #Faking it for testing
     camera = 1
     ccd = 1
-    col = 225.5
+    col = 227.5
     row = 255.1
     
     #Retrieve the Cube.
@@ -42,11 +42,9 @@ def lambda_handler(event, context):
     cubeObj = ls.LoadTessCube(path)
     cube, cube_col, cube_row = cubeObj.get(camera, ccd, col, row, 
                                            min_size_pix = 40)
-    
-    print(cube_col, cube_row)
-    print(np.shape(cube))
-    #midtime = cubeObj.getMidTimestamps()
-    midtime = cubeObj.getRelativeCadenceNumbers()
+
+    midtime = cubeObj.getMidTimestamps()
+    #midtime = cubeObj.getRelativeCadenceNumbers()
     try:
         quality = cubeObj.getQualityFlags()
     except:
@@ -70,10 +68,10 @@ def lambda_handler(event, context):
 
 def test1():
     #Bucket names should be local file directories for the moment.
-    event = {"ticid": "261136679", 
+    event = {"ticid": "147424478", 
              "straw_bucket": "/Users/smullally/TESS/tess-straws/", 
              "lc_bucket":"lightcurves", 
-             "ap_radius":"2.0", 
+             "ap_radius":"3", 
              "sector":"1"}
     context = {}
     val = lambda_handler(event,context)
