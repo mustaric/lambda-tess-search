@@ -68,6 +68,18 @@ class LoadTessCube(object):
             
         return np.array(timestamps)
 
+    def getQualityFlags(self):
+        """Return the quality flags from the headers.
+        """
+        
+        try:
+            qflags = self.qualityFlags
+        except AttributeError:
+            raise AttributeError("metadata doesn't contain qualityFlags")
+            
+        return np.array(qflags)
+
+
     def getRelativeCadenceNumbers(self):
         """Return a integers from zero to length of datacube"""
         return np.arange(self.nCadences, dtype=int)
