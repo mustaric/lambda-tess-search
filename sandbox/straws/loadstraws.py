@@ -13,9 +13,9 @@ Created on Tue Oct 22 21:22:36 2019
 from __future__ import print_function
 from __future__ import division
 
-from pdb import set_trace as debug
-from boto.s3.connection import S3Connection
-
+#from pdb import set_trace as debug
+#from boto.s3.connection import S3Connection
+import boto3
 import numpy as np
 import json
 import os
@@ -67,6 +67,18 @@ class LoadTessCube(object):
             raise AttributeError("metadata doesn't contain timestamps")
             
         return np.array(timestamps)
+
+    def getQualityFlags(self):
+        """Return the quality flags from the headers.
+        """
+        
+        try:
+            qflags = self.qualityFlags
+        except AttributeError:
+            raise AttributeError("metadata doesn't contain qualityFlags")
+            
+        return np.array(qflags)
+
 
     def getRelativeCadenceNumbers(self):
         """Return a integers from zero to length of datacube"""
@@ -218,28 +230,55 @@ class LoadTessCube(object):
         return np.load(fn)
 
 
-
 def LoadTessCubeS3(LoadTessCube):
-    """Load straws from S3 instead of a local disk"""
+    """Load straws from S3 instead of a local disk
+    re-written by Susan to use boto3 instead of boto
+    And relies on aws credentials file set up.
+    """
 
-    def __init__(self, bucket, path, aws_key, aws_secret):
+    def __init__(self, bucket, path):
 
         #bucket is a string. self.bucket is an object
         self.bucketName = bucket
-        self.aws_secret = aws_secret
-        self.aws_key = aws_key
-
-        self.aws_connection = S3Connection(aws_key, aws_secret)
-        self.bucket = self.aws_connection.get_bucket(bucket)
+        self.s3 = boto3.resource('s3')
+        self.bucket = self.s3.Bucket(bucketName)
 
         self.loadMetadata(bucket, path)
 
     def getMetadataUri(self):
-       return os.path.join("s3://", self.bucket, self.path, common.METADATA_FILE)
+        obj = s3.Object(self.bucketName, self.path, common.METADATA_FILE)
+        astr=obj.get()['Body'].read()
+        return io.BytesIO(astr)
 
     def loadStrawFromUri(self, path, fn):
         #boto stuff goes here
         uri = os.path.join(path, fn)
-        strr = self.bucket.get_key(uri).get_contents_as_string()
-        return np.load(io.StringIO(strr))
+        obj = self.s3.Object(self.bucketName, uri)
+        thebytes = obj.get()['Body'].read()
+        return np.load(io.BytesIO(thebytes))
+
+
+#def LoadTessCubeS3(LoadTessCube):
+#    """Load straws from S3 instead of a local disk"""
+#
+#    def __init__(self, bucket, path, aws_key, aws_secret):
+#
+#        #bucket is a string. self.bucket is an object
+#        self.bucketName = bucket
+#        self.aws_secret = aws_secret
+#        self.aws_key = aws_key
+#
+#        self.aws_connection = S3Connection(aws_key, aws_secret)
+#        self.bucket = self.aws_connection.get_bucket(bucket)
+#
+#        self.loadMetadata(bucket, path)
+#
+#    def getMetadataUri(self):
+#       return os.path.join("s3://", self.bucket, self.path, common.METADATA_FILE)
+#
+#    def loadStrawFromUril(self, path, fn):
+#        #boto stuff goes here
+#        uri = os.path.join(path, fn)
+#        strr = self.bucket.get_key(uri).get_contents_as_string()
+#        return np.load(io.StringIO(strr))
 

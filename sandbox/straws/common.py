@@ -41,7 +41,7 @@ def makeStrawName(path, sector, camera, ccd, col, row):
                         "camera%i" %(camera),
                         "ccd%i" %(ccd))
 
-    fn = "straw-%i-%i-%03i-%03i.npy" %(camera, ccd, col, row)
+    fn = "straw-%02i-%i-%i-%04i-%04i.npy" %(sector, camera, ccd, col, row)
     return path, fn
 
 
