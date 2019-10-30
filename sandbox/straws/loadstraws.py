@@ -13,9 +13,9 @@ Created on Tue Oct 22 21:22:36 2019
 from __future__ import print_function
 from __future__ import division
 
-#from pdb import set_trace as debug
-#from boto.s3.connection import S3Connection
+from pdb import set_trace as debug
 import boto3
+
 import numpy as np
 import json
 import os
@@ -47,9 +47,13 @@ class LoadTessCube(object):
         Metadata is stored in a json file and contains details like ccd sizes,
         number of cadences, strawsize, etc.
         """
-        fn = self.getMetadataUrl()
+        fn = os.path.join(self.path, common.METADATA_FILE)
         with open(fn) as fp:
             props = json.load(fp)
+
+        self.setMetadataFromDict(props)
+        
+    def setMetadataFromDict(self, props):
 
         self.__dict__.update(props)
         self.nCols, self.nRows = self.nColsRows
@@ -67,18 +71,6 @@ class LoadTessCube(object):
             raise AttributeError("metadata doesn't contain timestamps")
             
         return np.array(timestamps)
-
-    def getQualityFlags(self):
-        """Return the quality flags from the headers.
-        """
-        
-        try:
-            qflags = self.qualityFlags
-        except AttributeError:
-            raise AttributeError("metadata doesn't contain qualityFlags")
-            
-        return np.array(qflags)
-
 
     def getRelativeCadenceNumbers(self):
         """Return a integers from zero to length of datacube"""
@@ -216,9 +208,6 @@ class LoadTessCube(object):
         straw = self.loadStrawFromUri(longPath, fn)
         return straw
 
-    def getMetadataUrl(self):
-        return os.path.join(self.path, common.METADATA_FILE)
-
     def loadStrawFromUri(self, path, fn):
         if not os.path.exists(path):
             raise IOError("Path %s not found" %(path))
@@ -230,25 +219,15 @@ class LoadTessCube(object):
         return np.load(fn)
 
 
+
 def LoadTessCubeS3(LoadTessCube):
-    """Load straws from S3 instead of a local disk
-    re-written by Susan to use boto3 instead of boto
-    And relies on aws credentials file set up.
-    """
+    """Load straws from S3 instead of a local disk"""
 
     def __init__(self, bucket, path):
-
         #bucket is a string. self.bucket is an object
         self.bucketName = bucket
         self.s3 = boto3.resource('s3')
-        self.bucket = self.s3.Bucket(bucketName)
-
         self.loadMetadata(bucket, path)
-
-    def getMetadataUri(self):
-        obj = s3.Object(self.bucketName, self.path, common.METADATA_FILE)
-        astr=obj.get()['Body'].read()
-        return io.BytesIO(astr)
 
     def loadStrawFromUri(self, path, fn):
         #boto stuff goes here
@@ -257,28 +236,15 @@ def LoadTessCubeS3(LoadTessCube):
         thebytes = obj.get()['Body'].read()
         return np.load(io.BytesIO(thebytes))
 
+    def loadMetadata(self):
+        """Load metadata on the straws stored in `path`
 
-#def LoadTessCubeS3(LoadTessCube):
-#    """Load straws from S3 instead of a local disk"""
-#
-#    def __init__(self, bucket, path, aws_key, aws_secret):
-#
-#        #bucket is a string. self.bucket is an object
-#        self.bucketName = bucket
-#        self.aws_secret = aws_secret
-#        self.aws_key = aws_key
-#
-#        self.aws_connection = S3Connection(aws_key, aws_secret)
-#        self.bucket = self.aws_connection.get_bucket(bucket)
-#
-#        self.loadMetadata(bucket, path)
-#
-#    def getMetadataUri(self):
-#       return os.path.join("s3://", self.bucket, self.path, common.METADATA_FILE)
-#
-#    def loadStrawFromUril(self, path, fn):
-#        #boto stuff goes here
-#        uri = os.path.join(path, fn)
-#        strr = self.bucket.get_key(uri).get_contents_as_string()
-#        return np.load(io.StringIO(strr))
+        Metadata is stored in a json file and contains details like ccd sizes,
+        number of cadences, strawsize, etc.
+        """
+        uri = os.path.join("s3://", self.bucket, self.path, common.METADATA_FILE)
 
+        obj = self.s3.Object(self.bucketName, uri)
+        thebytes = obj.get()['Body'].read()
+        props = json.loads(thebytes)
+        self.setMetadataFromDict(props)
