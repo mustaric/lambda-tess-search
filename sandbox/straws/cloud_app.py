@@ -16,7 +16,6 @@ import tess_pixels as tesspx
 import cube_sap 
 import write_lightcurve
 import json
-import matplotlib.pyplot as plt
 import boto3
 
 def lambda_handler(event, context):
@@ -47,7 +46,7 @@ def lambda_handler(event, context):
         quality = np.zeros(len(midtime))
     sap_flux, bkg, av_image = cube_sap.get_fluxes(cube, centroid=(cube_col, cube_row), 
                                radius_pix=ap_radius)
-    plt.imshow(av_image)
+
     
     output  =locals()
     cube_shape=np.shape(cube)
