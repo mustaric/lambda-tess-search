@@ -1,0 +1,18 @@
+{
+  "comment": "A dummy straw collection used for testing",
+  "outPath": "/home/sthomp/TESS/s0001-straws/",
+  "ffiPath": "/home/sthomp/TESS/s0001/",
+  "sector": 1,
+  "camera": 1,
+  "ccd": 2,
+  "strawSize": 5,
+  "dataVersion": 120,
+  "datestampList": [
+    "2018206192942",
+    "2018206195942"
+  ],
+  "nColsRows": [
+    2136,
+    2078
+  ]
+}
