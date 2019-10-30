@@ -28,19 +28,14 @@ def lambda_handler(event, context):
     sector = int(event['sector'])
     
     #Get location of the star for this sector.
+    #For cloud use cloud = True and local_dir = /tmp
     camera, ccd, col, row = tesspx.get_object_coords(ticid, sector, \
-                                        nFFI=50, cloud = False, local_dir = ".")
+                                        nFFI=50, cloud = True, local_dir = "/tmp")
      
-    #print(ccd,col,row)
-    #Faking it for testing
-    #camera = 1
-    #ccd = 1
-    #col = 227.5
-    #row = 255.1
     
     #Retrieve the Cube.
     path = straw_bucket
-    cubeObj = ls.LoadTessCubeS3(path)
+    cubeObj = ls.LoadTessCubeS3(path, "")
     cube, cube_col, cube_row = cubeObj.get(camera, ccd, col, row, 
                                            min_size_pix = 40)
 
@@ -92,3 +87,19 @@ def test2():
     context = {}
     val = lambda_handler(event,context)
     print(val)
+    
+def test_loadstraws3():
+        
+    #Faking it for testing
+    sector = 1
+    camera = 1
+    ccd = 1
+    col = 227.5
+    row = 255.1
+    path = ""
+    bucket = "tess-straws"
+    cubeObj = ls.LoadTessCubeS3(bucket, path, sector)
+    cube, cube_col, cube_row = cubeObj.get(camera, ccd, col, row, 
+                                           min_size_pix = 40)
+    print(cube.shape)
+    

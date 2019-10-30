@@ -91,3 +91,19 @@ def test_pickABox():
 
     with pytest.raises(ValueError):
         bounds = obj.pickBbox(60, 700, 120)
+
+
+def test_loadstraws3():
+        
+    #Faking it for testing
+    sector = 1
+    camera = 1
+    ccd = 1
+    col = 227.5
+    row = 255.1
+    path = ""
+    bucket = "tess-straws"
+    cubeObj = loadstraws.LoadTessCubeS3(bucket, path, sector)
+    cube, cube_col, cube_row = cubeObj.get(camera, ccd, col, row, 
+                                           min_size_pix = 40)
+    print(cube.shape)

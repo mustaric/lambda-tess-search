@@ -220,19 +220,23 @@ class LoadTessCube(object):
 
 
 
-def LoadTessCubeS3(LoadTessCube):
+class LoadTessCubeS3(LoadTessCube):
     """Load straws from S3 instead of a local disk"""
 
-    def __init__(self, bucket, path):
+    def __init__(self, bucket, path, sector):
         #bucket is a string. self.bucket is an object
         self.bucketName = bucket
-        self.s3 = boto3.resource('s3')
-        self.loadMetadata(bucket, path)
+        self.s3 = boto3.resource('s3') 
+        self.path = path
+        self.sector = sector
+        self.loadMetadata()
 
     def loadStrawFromUri(self, path, fn):
         #boto stuff goes here
         uri = os.path.join(path, fn)
+        print(uri)
         obj = self.s3.Object(self.bucketName, uri)
+        print(obj)
         thebytes = obj.get()['Body'].read()
         return np.load(io.BytesIO(thebytes))
 
@@ -242,8 +246,7 @@ def LoadTessCubeS3(LoadTessCube):
         Metadata is stored in a json file and contains details like ccd sizes,
         number of cadences, strawsize, etc.
         """
-        uri = os.path.join("s3://", self.bucket, self.path, common.METADATA_FILE)
-
+        uri = os.path.join(self.path, "sector%02i" % self.sector, common.METADATA_FILE)
         obj = self.s3.Object(self.bucketName, uri)
         thebytes = obj.get()['Body'].read()
         props = json.loads(thebytes)
