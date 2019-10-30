@@ -33,8 +33,7 @@ def lambda_handler(event, context):
      
     
     #Retrieve the Cube.
-    path = straw_bucket
-    cubeObj = ls.LoadTessCubeS3(path, "")
+    cubeObj = ls.LoadTessCubeS3(straw_bucket, "", sector)
     cube, cube_col, cube_row = cubeObj.get(camera, ccd, col, row, 
                                            min_size_pix = 40)
 
@@ -79,8 +78,8 @@ def test1():
 def test2():
     #osciallatory star
     event = {"ticid": "147424426", 
-             "straw_bucket": "/Users/smullally/TESS/tess-straws/", 
-             "lc_bucket":"lightcurves", 
+             "straw_bucket": "tess-straws", 
+             "lc_bucket":"straw-lightcurves", 
              "ap_radius":"2", 
              "sector":"1"}
     context = {}
