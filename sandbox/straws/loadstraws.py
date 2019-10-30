@@ -28,11 +28,12 @@ class LoadTessCube(object):
     Load a datacube of TESS imagery from straws stored on disk.
     """
 
-    def __init__(self, path):
+    def __init__(self, path, sector):
 
         #Set path to None for some testing
         if path is not None:
             self.path = path
+            self.sector = sector
             self.loadMetadata()
 
     def __repr__(self):
@@ -47,10 +48,12 @@ class LoadTessCube(object):
         Metadata is stored in a json file and contains details like ccd sizes,
         number of cadences, strawsize, etc.
         """
-        fn = os.path.join(self.path, common.METADATA_FILE)
+        sectorStr = "sector%02i" %(self.sector)
+        fn = os.path.join(self.path, sectorStr, common.METADATA_FILE)
         with open(fn) as fp:
             props = json.load(fp)
 
+        assert self.sector == props['sector']
         self.setMetadataFromDict(props)
         
     def setMetadataFromDict(self, props):
@@ -119,6 +122,8 @@ class LoadTessCube(object):
         for i in range(c0, c1, ds):
             for j in range(r0, r1, ds):
                 straw = self.getStraw(camera, ccd, i, j)
+                
+                assert straw.shape == (self.nCadences, ds, ds)
 
                 dCol = i - c0
                 dRow = j - r0
@@ -208,11 +213,11 @@ class LoadTessCube(object):
         straw = self.loadStrawFromUri(longPath, fn)
         return straw
 
-    def loadStrawFromUri(self, path, fn):
-        if not os.path.exists(path):
-            raise IOError("Path %s not found" %(path))
+    def loadStrawFromUri(self, strawPath, fn):
+        if not os.path.exists(strawPath):
+            raise IOError("Path %s not found" %(strawPath))
 
-        fn = os.path.join(path, fn)
+        fn = os.path.join(strawPath, fn)
         if not os.path.exists(fn):
             raise IOError("File %s not found" %(fn))
 
@@ -223,17 +228,17 @@ class LoadTessCube(object):
 class LoadTessCubeS3(LoadTessCube):
     """Load straws from S3 instead of a local disk"""
 
-    def __init__(self, bucket, path, sector):
+    def __init__(self, bucket, path, sector, region='us-east-1'):
         #bucket is a string. self.bucket is an object
         self.bucketName = bucket
-        self.s3 = boto3.resource('s3') 
+        self.s3 = boto3.resource('s3', region_name=region) 
         self.path = path
         self.sector = sector
         self.loadMetadata()
 
-    def loadStrawFromUri(self, path, fn):
+    def loadStrawFromUri(self, strawPath, fn):
         #boto stuff goes here
-        uri = os.path.join(path, fn)
+        uri = os.path.join(strawPath, fn)
         print(uri)
         obj = self.s3.Object(self.bucketName, uri)
         print(obj)
@@ -247,7 +252,11 @@ class LoadTessCubeS3(LoadTessCube):
         number of cadences, strawsize, etc.
         """
         uri = os.path.join(self.path, "sector%02i" % self.sector, common.METADATA_FILE)
+        print(uri)
         obj = self.s3.Object(self.bucketName, uri)
+        print(obj)
         thebytes = obj.get()['Body'].read()
+
         props = json.loads(thebytes)
+        assert self.sector == props['sector']
         self.setMetadataFromDict(props)
