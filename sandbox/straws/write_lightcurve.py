@@ -33,16 +33,16 @@ def to_fits_local(writepath, output):
             'DATE': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')}
 
         # f4 = np.float32, f8 = np.float64, i4 = np.int32
-    lc_tab = Table(names=('TIME', 'SAP_FLUX', 'SAP_BKG'),
-                   dtype=('f8', 'f4', 'f4'),
-                   data=(output['midtime'], output['sap_flux'], output['bkg']),
-                   meta=lc_meta)
+    #lc_tab = Table(names=('TIME', 'SAP_FLUX', 'SAP_BKG', 'QUALITY'),
+    #               dtype=('f8', 'f4', 'f4'),   
+#               data=(output['midtime'], output['sap_flux'], output['bkg']),
+#                   meta=lc_meta)
     c1 = fits.Column(name='TIME', array=output['midtime'], format='f8')
     c2 = fits.Column(name='SAP_FLUX', array = output['sap_flux'], format='f4')
     c3 = fits.Column(name='SAP_BKG', array = output['bkg'], format='f4')
+    c4 = fits.Column(name='QUALITY', array = output['bkg'], format='i4')
     
-    t = fits.BinTableHDU.from_columns([c1, c2, c3], name = 'Light Curve')
-    
+    t = fits.BinTableHDU.from_columns([c1, c2, c3, c4], name = 'Light Curve')
     
     image = output['av_image']
     
@@ -50,8 +50,7 @@ def to_fits_local(writepath, output):
     hduim = fits.ImageHDU(image, name = 'Average Image')
     
     hdul = fits.HDUList([primary_hdr, t, hduim])
-    
-    
+      
     sector = output['sector']
     camera = output['camera']
     ccd = output['ccd']
@@ -63,4 +62,4 @@ def to_fits_local(writepath, output):
     hdul.writeto(outfilename, overwrite=True)
     
     
-    return outfilename
+    return outfilename, basename

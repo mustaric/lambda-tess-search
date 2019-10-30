@@ -17,7 +17,7 @@ import cube_sap
 import write_lightcurve
 import json
 import matplotlib.pyplot as plt
-
+import boto3
 
 def lambda_handler(event, context):
     
@@ -40,7 +40,7 @@ def lambda_handler(event, context):
     
     #Retrieve the Cube.
     path = straw_bucket
-    cubeObj = ls.LoadTessCube(path)
+    cubeObj = ls.LoadTessCubeS3(path)
     cube, cube_col, cube_row = cubeObj.get(camera, ccd, col, row, 
                                            min_size_pix = 40)
 
@@ -56,14 +56,18 @@ def lambda_handler(event, context):
     
     output  =locals()
     cube_shape=np.shape(cube)
-    writepath = "./"
-    filename = write_lightcurve.to_fits_local(writepath, output)
+    writepath = "/tmp/"
+    filename, basename = write_lightcurve.to_fits_local(writepath, output)
+    s3_client = boto3.client('s3')
+    esp = s3_client.upload_file(filename, lc_bucket, basename)
     
     
     return {
         "statusCode": 200,
         "body": json.dumps({
-                "filename": filename
+                "filename": filename,
+                "basename": basename,
+                "cubesize": str(cube.shape)
                 })
         }
 

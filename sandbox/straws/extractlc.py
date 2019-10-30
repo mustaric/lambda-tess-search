@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from pdb import set_trace as debug
+#from pdb import set_trace as debug
 from astroquery.mast import Catalogs, Tesscut
 from astropy.coordinates import SkyCoord
 
