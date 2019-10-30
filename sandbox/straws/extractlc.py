@@ -1,12 +1,9 @@
-import matplotlib.pyplot as plt
 import numpy as np
 
 #from pdb import set_trace as debug
 from astroquery.mast import Catalogs, Tesscut
 from astropy.coordinates import SkyCoord
 
-from astropy.io import fits
-import os
 
 
 """
@@ -39,25 +36,13 @@ def getWasp126():
 def main(cube, hdr):
     sky = measureSky(cube)
 
-    plt.clf()
-    plt.plot(sky)
-    plt.pause(.1)
-    input()
-
-
     centroid = np.array(cube.shape[1:]) / 2.
     aper = chooseAperture(cube, 2 * sky, centroid)
 
-    plt.clf()
-    plt.imshow(aper, origin='bottom')
-    plt.pause(.1)
     input()
 
     lc = performAperturePhotometry(cube, sky, aper)
-    plt.clf()
-    plt.plot(lc)
-    plt.plot(sky)
-    plt.pause(.1)
+
     input()
 
 
