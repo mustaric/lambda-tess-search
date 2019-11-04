@@ -13,7 +13,6 @@ Created on Tue Oct 22 21:22:36 2019
 from __future__ import print_function
 from __future__ import division
 
-from pdb import set_trace as debug
 import boto3
 
 import numpy as np
@@ -239,9 +238,7 @@ class LoadTessCubeS3(LoadTessCube):
     def loadStrawFromUri(self, strawPath, fn):
         #boto stuff goes here
         uri = os.path.join(strawPath, fn)
-        print(uri)
         obj = self.s3.Object(self.bucketName, uri)
-        print(obj)
         thebytes = obj.get()['Body'].read()
         return np.load(io.BytesIO(thebytes))
 

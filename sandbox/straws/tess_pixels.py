@@ -12,6 +12,8 @@ from astroquery.mast import Catalogs
 from astropy.coordinates import SkyCoord
 from astroquery.mast import Tesscut
 from astropy.io import fits
+import boto3
+import io
 
 def id_wcs_file(secid):
    """
@@ -42,11 +44,12 @@ def download_wcs_file(filtered, local_dir, n=10, cloud=False):
         Observations.enable_cloud_dataset(provider='AWS')
             
     obsslice = slice(n,n+1)
-    manifest=Observations.download_products(filtered[obsslice], download_dir=local_dir, 
-                                                mrp_only=False)
+    manifest=Observations.download_products(filtered[obsslice], 
+                                            download_dir=local_dir, 
+                                            mrp_only=False)
     
     return manifest['Local Path'][0]
-        
+     
 
 def make_secid(sector, camera, ccd):
 
@@ -123,23 +126,30 @@ def get_object_coords(ticid, sector, nFFI=10, cloud = False, local_dir = "."):
 
     if camera > 0:
         secid = make_secid(sector, camera, ccd)
-        filtered = id_wcs_file(secid)
-    
-        try:
-            #Look for a good WCS.
-            bad_coord = True
-            n = 0
-            while bad_coord & (n <= 3):
-                bad_coord = False
-                n=n+1
-                ffi_file_path = download_wcs_file(filtered, local_dir, n=nFFI, cloud=cloud)
-                col, row = get_xy(ffi_file_path, coord)
-                
-                if (col <= 0) | (col >= 2048) | (row <= 0) | (row >= 2048):
-                    bad_coord = True
-                    nFFI = nFFI + 2
-            
-        except NameError:
-            pass
+        ffi_file_path = get_wcsfile(secid)
+        #filtered = id_wcs_file(secid)
+
+    #ffi_file_path = download_wcs_file(filtered, local_dir, n=nFFI, cloud=cloud)
+    #I need to create a file lookup in here, but for the moment.
+
+    col, row = get_xy(ffi_file_path, coord)
+
             
     return camera, ccd, col, row
+
+def get_wcsfile(secid):
+    """
+    return wcs header
+    """
+    bucket = "tess-straws"
+        
+    if (secid == "tess-s0001-1-1"):
+        ffi_file_name = "ffiwcs/tess2018207202942-s0001-1-1-0120-s_ffic_wcshdronly.fits"
+    else:
+        print(secid)
+    s3 = boto3.resource('s3')
+    obj = s3.Object(bucket, ffi_file_name)
+    thebytes = obj.get()['Body'].read()
+    
+    return io.BytesIO(thebytes)
+    
