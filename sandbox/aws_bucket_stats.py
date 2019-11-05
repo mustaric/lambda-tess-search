@@ -11,6 +11,7 @@ def ffi_lc_cache_csv_stats(bucketname):
 
     Examples
     --------
+    >>> from aws_bucket_stats import ffi_lc_cache_csv_stats
     >>> d = ffi_lc_cache_csv_stats('mybucket')
     >>> d
     {'tic000025155310': {

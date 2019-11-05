@@ -32,7 +32,7 @@ def bert_tess_fullframe_main_0():
     # TODO: How to run the full workflow without hardcoding the input here?
     # NOTE: See the note about DEBUG in module docstring.
     work_queue = [{"bucket": "ffi-lc-cache",
-                   "key": "mullally_input_list_001.txt",
+                   "key": "mullally_exofop_short_period.csv",
                    "use_cache": "true"}]
 
     # Example event:
@@ -213,6 +213,8 @@ def bert_tess_fullframe_main_2():
         ra = float(event['ra'])
         dec = float(event['dec'])
 
+        # TODO: Cache good WCS for a given sector/camera/ccd combo and use
+        #       known good cache if available.
         # Find pixel coordinates from sky from first frame header.
         key = s3_urls[0]
         basename = key.split('/')[-1]
@@ -221,6 +223,9 @@ def bert_tess_fullframe_main_2():
         bucket.download_file(
             key, filename, ExtraArgs={"RequestPayer": "requester"})
         hdr = fits.getheader(filename, ext=1)
+        if hdr.get('WCSAXES', 0) != 2:  # Good WCS according to MIT
+            ologger.error(f'{key} has invalid WCS')
+            continue
         w = WCS(hdr)
         pix = w.all_world2pix(ra, dec, 0)
         xpos = round(float(pix[0]))  # float needed to get rid of 0-D array
@@ -328,6 +333,8 @@ def bert_tess_fullframe_worker_1():
         # nothing to do.
         if use_cache:
             try:
+                # NOTE: This can create a directory with the same name as the
+                #       bucket inside the bucket!
                 s3.Object(outbucket_name, s3key).load()
             except Exception:  # Does not exist
                 pass
@@ -459,6 +466,8 @@ def bert_tess_fullframe_worker_2():
         # nothing to do.
         if use_cache:
             try:
+                # NOTE: This can create a directory with same name as the
+                #       bucket inside the bucket!
                 s3.Object(bucket_name, s3key).load()
             except Exception:  # Does not exist
                 pass

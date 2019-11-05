@@ -1,3 +1,6 @@
+deployment:
+  s3_bucket: ffi-lc-bert-code
+
 every_lambda:
   runtime: python3.7
   memory_size: 512
