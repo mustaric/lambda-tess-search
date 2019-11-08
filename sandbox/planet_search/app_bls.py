@@ -70,6 +70,7 @@ def lambda_handler(event, context):
         time, flux, qflags, phead = io.read_lightcurve_lambda_local(bucket, \
                                             b_filename, local_filename)
     
+    print(time,flux,qflags)
     ticid, camera, sector, ccd = io.read_header(phead)
 
     namestr = "tic%012u/tic%012u_s%04u-%1u-%1u" % \
@@ -160,10 +161,10 @@ def test2():
         "s3SchemaVersion": "1.0",
         "configurationId": "b0efd5b1-cc92-47b4-8501-1c34f5eba235",
         "bucket": {
-          "name": "/tmp/tic000147424426_s0001-1-1_stlc.fits"
+          "name": "/tmp/"
         },
         "object": {
-          "key": "tic000388624270_s0009-3-3_lcc.fits"
+          "key": "tic000147424426_s0001-1-1_stlc.fits"
         }
       }
     }

@@ -41,12 +41,16 @@ def lambda_handler(event, context):
    
     try:
         quality = cubeObj.getQualityFlags()
+        #For the moment we are only using zeros because what is coming 
+        #from the FFI straws is bad.
+        #quality = np.zeros(len(midtime))
+        
     except:
         quality = np.zeros(len(midtime))
+        
     sap_flux, bkg, av_image = cube_sap.get_fluxes(cube, centroid=(cube_col, cube_row), 
                                radius_pix=ap_radius)
 
-    
     output  =locals()
     cube_shape=np.shape(cube)
     writepath = "/tmp/"
@@ -61,6 +65,7 @@ def lambda_handler(event, context):
         "body": json.dumps({
                 "filename": filename,
                 "basename": basename,
+                "bucket_path":bucket_path,
                 "cubesize": str(cube.shape)
                 })
         }

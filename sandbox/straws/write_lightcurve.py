@@ -40,9 +40,10 @@ def to_fits_local(writepath, output):
     c1 = fits.Column(name='TIME', array=output['midtime'], format='f8')
     c2 = fits.Column(name='SAP_FLUX', array = output['sap_flux'], format='f4')
     c3 = fits.Column(name='SAP_BKG', array = output['bkg'], format='f4')
-    c4 = fits.Column(name='QUALITY', array = output['bkg'], format='i4')
+    c4 = fits.Column(name='QUALITY', array = output['quality'], format='i4')
     
-    t = fits.BinTableHDU.from_columns([c1, c2, c3, c4], name = 'Light Curve')
+    t = fits.BinTableHDU.from_columns([c1, c2, c3, c4], name = 'Light Curve',
+                                      header = fits.Header(lc_meta))
     
     image = output['av_image']
     
@@ -55,7 +56,7 @@ def to_fits_local(writepath, output):
     camera = output['camera']
     ccd = output['ccd']
     sec_id = f's{sector:04}-{camera}-{ccd}'
-    basename = f'tic{ticid:0>12}_{sec_id}_lcc.fits'
+    basename = f'tic{ticid:0>12}_{sec_id}_stlc.fits'
     outfilename = writepath + basename
     
     #lc_tab.write(outfilename, format='fits')
