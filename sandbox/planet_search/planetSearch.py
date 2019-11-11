@@ -36,7 +36,7 @@ def clean_timeseries(time, flux, qflags, det_window, noise_window, n_sigma):
     
     return good_time, good_flux
 
-def median_detrend(flux,window, gap):
+def median_detrend(flux, window, gap):
     """
     return median detrended array
     centered on zero at the end.
