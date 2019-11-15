@@ -37,9 +37,9 @@ def lambda_handler(event, context):
     min_snr = 4
     max_tce = 3
     frac_remain = 0.8
-    det_window = 45
-    noise_window = 12
-    n_sigma = 4
+    det_window = 55
+    noise_window = 11
+    n_sigma = 3.8
     search_bucket = "tesssearchresults"
     #---------
     
@@ -79,6 +79,10 @@ def lambda_handler(event, context):
     #Detrend
     good_time, meddet_flux = ps.clean_timeseries(time, flux, qflags, det_window, \
                                           noise_window, n_sigma)
+    
+    #import matplotlib.pyplot as plt
+    #plt.figure()
+    #plt.plot(good_time,meddet_flux,'.')
     
     #Take BLS
     results, stats = ps.identifyTces(good_time, meddet_flux, bls_durs_hrs=durs,\
@@ -153,7 +157,7 @@ def test1():
 
 
 def test2():
-    
+    """Pretty flat example"""
     event = {
     "Records": [
     {
@@ -165,6 +169,30 @@ def test2():
         },
         "object": {
           "key": "tic000147424426_s0001-1-1_stlc.fits"
+        }
+      }
+    }
+  ]
+}
+    context = {}
+    
+    out = lambda_handler(event, context)
+    
+    assert out["statusCode"] == 200
+
+def test3():
+    """Example with a oscillation and an eb/transit signal. P is 1.087 days"""
+    event = {
+    "Records": [
+    {
+      "s3": {
+        "s3SchemaVersion": "1.0",
+        "configurationId": "b0efd5b1-cc92-47b4-8501-1c34f5eba235",
+        "bucket": {
+          "name": "/tmp/"
+        },
+        "object": {
+          "key": "tic000129646247_s0001-1-1_stlc.fits"
         }
       }
     }

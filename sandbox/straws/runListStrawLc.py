@@ -10,20 +10,23 @@ import boto3
 import numpy as np
 import json
 import time
+import pandas as p
 
-ticfile = "/Users/smullally/TESS/lambdaSearch/strawTests/s0001-1-1_targlist1.txt"
+ticfile = "/Users/smullally/TESS/lambdaSearch/strawTests/kdwarf_cam1_input.csv"
 
-ticlist = np.loadtxt(ticfile)
-
+ticlist = p.read_csv(ticfile)
+tics= ticlist['ticid']
+radii= ticlist['radii']
+#%%
 client = boto3.client('lambda')
 
 a= time.time()
-for tic in ticlist[80:101]:
+for i,ticid in enumerate(tics[0:15]):
     
-    jsonInput = {"ticid": str(int(tic)), 
+    jsonInput = {"ticid": str(int(ticid)), 
                  "straw_bucket": "tess-straws", 
                  "lc_bucket": "straw-lightcurves", 
-                 "ap_radius": "2", 
+                 "ap_radius": str(radii[i]), 
                  "sector": "1" }
     print(jsonInput)
     client.invoke(FunctionName="strawLcMaker",

@@ -20,12 +20,13 @@ def clean_timeseries(time, flux, qflags, det_window, noise_window, n_sigma):
     #qbad and bad should be of the same length
     
     flagged = bad | qbad  #Indicate bad data
-    med_det = median_detrend(flux, det_window, flagged)
+    med_det = median_detrend(flux[~flagged], det_window)
     det_time = time[~flagged]
     
     #Look for 3 bad sections on length of around 2 days (window = 90)
-    std_bad = running_std_gap(med_det, 70, N=3, ntimes=3)
+    std_bad, med_std = running_std_gap(med_det, 70, N=3, ntimes=3)
     #print(len(std_bad[std_bad]))
+    
     
     good_time = det_time[~std_bad]
     good_flux = med_det[~std_bad]
@@ -36,7 +37,55 @@ def clean_timeseries(time, flux, qflags, det_window, noise_window, n_sigma):
     
     return good_time, good_flux
 
-def median_detrend(flux, window, gap):
+def median_detrend(flux, window):
+    """
+    Fergal's code to median detrend. 
+    """
+    size = len(flux)
+    nPoints = window
+    
+    filtered = np.zeros(size)
+    for i in range(size):
+        #This two step ensures that lwr and upr lie in the range [0,size)
+        lwr = max(i-nPoints, 0)
+        upr = min(lwr + 2*nPoints, size)
+        lwr = upr- 2*nPoints
+
+        sub = flux[lwr:upr]
+
+        offset = np.median(sub)
+        try:
+            filtered[i] = flux[i]/offset - 1
+        except ZeroDivisionError:
+                filtered[i] = 0
+
+    return filtered
+
+def median_subtract(flux, window):
+    """
+    Fergal's code to median detrend. 
+    """
+    size = len(flux)
+    nPoints = window
+    
+    filtered = np.zeros(size)
+    for i in range(size):
+        #This two step ensures that lwr and upr lie in the range [0,size)
+        lwr = max(i-nPoints, 0)
+        upr = min(lwr + 2*nPoints, size)
+        lwr = upr- 2*nPoints
+
+        sub = flux[lwr:upr]
+
+        offset = np.median(sub)
+        try:
+            filtered[i] = flux[i] - offset
+        except ZeroDivisionError:
+                filtered[i] = 0
+
+    return filtered
+
+def conv_detrend(flux, window, gap):
     """
     return median detrended array
     centered on zero at the end.
@@ -64,14 +113,14 @@ def idNoisyData(flux, window, Nsigma=4):
 
     is_bad = np.zeros(len(flux)) == 1
         
-    mdFlux = median_detrend(flux, win, is_bad)
+    mdFlux = median_detrend(flux[~is_bad], win)
 
     for i in np.arange(1,4):
 
         if np.all(is_bad):
             continue
 
-        sd = np.std(mdFlux[~is_bad])
+        sd = np.std(mdFlux)
         is_bad |= np.abs(mdFlux) > Nsigma * sd
 
     return is_bad
@@ -114,7 +163,7 @@ def running_std_gap(flux, window, N=3, ntimes=3):
             
     isbad = gap == 1
     
-    return isbad
+    return isbad, med_std
         
 
 def calcBls(flux,time, bls_durs, minP=None, maxP=None, min_trans=3):
@@ -152,11 +201,14 @@ def simpleSnr(time,flux,results):
     
     model = BoxLeastSquares(time,flux)
     fmodel =  model.model(time,results[0],results[3],results[1])
-    noise = np.std(flux-fmodel)
+    flatten = median_subtract(flux-fmodel, 12)
+    
+    noise = np.std(flatten)
     snr = results[2]/noise
     
     return snr
-    
+
+   
 def identifyTces(time, flux, bls_durs_hrs=[1,2,4,8,12], minSnr=3, fracRemain=0.5, \
                  maxTces=10, minP=None, maxP=None):
     """
@@ -201,7 +253,7 @@ def identifyTces(time, flux, bls_durs_hrs=[1,2,4,8,12], minSnr=3, fracRemain=0.5
         f=f[~transit_mask]
         
         #plt.plot(t,f,'r.')
-        
+        #Conditions to keep looking
         if (len(t)/len(time) > fracRemain) & \
                (bls_results[4] >= minSnr) & \
                (counter <= maxTces) :

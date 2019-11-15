@@ -55,7 +55,7 @@ def lambda_handler(event, context):
     cube_shape=np.shape(cube)
     writepath = "/tmp/"
     filename, basename = write_lightcurve.to_fits_local(writepath, output)
-    bucket_path = "tic%013u/" % int(ticid)
+    bucket_path = "tic%012u/" % int(ticid)
     s3_client = boto3.client('s3')
     esp = s3_client.upload_file(filename, lc_bucket, bucket_path+basename)
     
@@ -84,10 +84,10 @@ def test1():
 
 def test2():
     #osciallatory star
-    event = {"ticid": "147424426", 
+    event = {"ticid": "129646247", 
              "straw_bucket": "tess-straws", 
              "lc_bucket":"straw-lightcurves", 
-             "ap_radius":"2", 
+             "ap_radius":"2.2", 
              "sector":"1"}
     context = {}
     val = lambda_handler(event,context)

@@ -142,11 +142,10 @@ def get_wcsfile(secid):
     return wcs header
     """
     bucket = "tess-straws"
-        
-    if (secid == "tess-s0001-1-1"):
-        ffi_file_name = "ffiwcs/tess2018207202942-s0001-1-1-0120-s_ffic_wcshdronly.fits"
-    else:
-        print(secid)
+      
+    ffi_file_name = "ffiwcs/%s_wcs.fits" % secid[-9:]
+
+    print(secid)
     s3 = boto3.resource('s3')
     obj = s3.Object(bucket, ffi_file_name)
     thebytes = obj.get()['Body'].read()
