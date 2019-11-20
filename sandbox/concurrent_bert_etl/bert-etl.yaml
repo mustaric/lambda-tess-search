@@ -1,0 +1,31 @@
+deployment:
+  s3_bucket: ffi-lc-bert-code
+
+every_lambda:
+  runtime: python3.7
+  memory_size: 512
+  requirements:
+    - numpy
+  timeout: 900
+  environment:
+    DEBUG: "false"
+    HOME: /tmp
+    AWSBUCKETNAME: stpubdata
+    CACHEBUCKETNAME: ffi-lc-cache
+
+  identity_encoders:
+    - 'bert.encoders.numpy.NumpyIdentityEncoder'
+    - 'bert.encoders.base.IdentityEncoder'
+
+  queue_encoders:
+    - 'bert.encoders.numpy.encode_aws_object'
+    - 'bert.encoders.base.encode_aws_object'
+
+  queue_decoders:
+    - 'bert.encoders.numpy.decode_aws_object'
+    - 'bert.encoders.base.decode_aws_object'
+
+bert_tess_fullframe_worker_2:
+  environment:
+    AWSBUCKETNAME: ffi-lightcurves
+    CACHEBUCKETNAME: ffi-lc-cache

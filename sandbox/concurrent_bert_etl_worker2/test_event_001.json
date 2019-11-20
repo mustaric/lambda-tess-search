@@ -1,0 +1,9 @@
+{
+  "tic_id": "25155310",
+  "sector": 1,
+  "camera": 4,
+  "ccd": 1,
+  "radius": 2.5,
+  "cutout_width": 30,
+  "use_cache": "false"
+}
