@@ -21,7 +21,7 @@ radii= ticlist['radii']
 client = boto3.client('lambda')
 
 a= time.time()
-for i,ticid in enumerate(tics[0:15]):
+for i,ticid in enumerate(tics):
     
     jsonInput = {"ticid": str(int(ticid)), 
                  "straw_bucket": "tess-straws", 
