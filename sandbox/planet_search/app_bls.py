@@ -31,15 +31,15 @@ def lambda_handler(event, context):
     print(event)
   
     #Input variables
-    aminP = 0.75
-    amaxP = 10.0
-    durs = [1, 2, 3, 4, 5, 6]
-    min_snr = 4
-    max_tce = 3
+    aminP = 0.7
+    amaxP = 12.0
+    durs = [0.75, 1, 3, 5, 7]
+    min_snr = 3.9
+    max_tce = 4
     frac_remain = 0.8
-    det_window = 55
-    noise_window = 11
-    n_sigma = 3.8
+    det_window = 36
+    noise_window = 12
+    n_sigma = 3.5
     search_bucket = "tesssearchresults"
     #---------
     
@@ -54,6 +54,7 @@ def lambda_handler(event, context):
     
     #If not in the cloud bucket begins with /, do the following to set up for a test.
     if bucket[0] == "/":
+        print("Not Using cloud.")
         cloud = False  #For testing
         local_filename = bucket + b_filename
         local_dir = "/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/"
@@ -78,7 +79,7 @@ def lambda_handler(event, context):
     
     #Detrend
     good_time, meddet_flux = ps.clean_timeseries(time, flux, qflags, det_window, \
-                                          noise_window, n_sigma)
+                                          noise_window, n_sigma, sector)
     
     #import matplotlib.pyplot as plt
     #plt.figure()
@@ -109,21 +110,24 @@ def lambda_handler(event, context):
         resp = "not cloud"
         if not os.path.exists(local_dir + "tic%012u" % (int(ticid))):
             os.mkdir(local_dir + "tic%012u" % (int(ticid)))
+            
         try:
             os.remove(local_dir + bucket_out_name)
         except:
             pass
+        
         os.rename(out_file, local_dir + bucket_out_name)
         try:
             os.remove(local_dir + bucket_detrend_name)
         except:
             pass
         os.rename(local_detrend_fn, local_dir + bucket_detrend_name)
+        
     
     return {
             "statusCode": 200,
             "body": json.dumps({
-                    "outname": bucket_out_name,
+                    "outname": local_dir+bucket_detrend_name,
                     "response": str(resp),
                     "period": str(results[0][0]),
                     "epoch": str(results[0][1])
@@ -202,4 +206,59 @@ def test3():
     
     out = lambda_handler(event, context)
     
+    assert out["statusCode"] == 200
+    
+def test4():
+    """
+    Example TOI we should be able to find
+    File needs to be in /tmp
+    """
+    event = {
+    "Records": [
+    {
+      "s3": {
+        "s3SchemaVersion": "1.0",
+        "configurationId": "b0efd5b1-cc92-47b4-8501-1c34f5eba235",
+        "bucket": {
+          "name": "/tmp/"
+        },
+        "object": {
+          "key": "tic000147203645/tic000147203645_s0001-1-1_stlc.fits"
+        }
+      }
+    }
+  ]
+}
+    context = {}
+    
+    out = lambda_handler(event, context)
+    
+    assert out["statusCode"] == 200
+    
+def test_generic(key,bucket):
+    """
+    Example TOI we should be able to find
+    key should be the full file name
+    bucket should be the full path
+    """
+    event = {
+    "Records": [
+    {
+      "s3": {
+        "s3SchemaVersion": "1.0",
+        "configurationId": "b0efd5b1-cc92-47b4-8501-1c34f5eba235",
+        "bucket": {
+          "name": bucket
+        },
+        "object": {
+          "key": key
+        }
+      }
+    }
+  ]
+}
+    context = {}
+    
+    out = lambda_handler(event, context)
+    print(out)
     assert out["statusCode"] == 200

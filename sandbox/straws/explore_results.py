@@ -10,7 +10,7 @@ import boto3
 import numpy as np
 from astropy.timeseries import BoxLeastSquares
 import matplotlib.pyplot as plt
-import lightkurve as lk
+#import lightkurve as lk
 from astropy.io import fits
 import io
 import os
@@ -33,16 +33,23 @@ def generate_plots_s3(ticid,sector,cam,ccd, \
     returns hdus and a dictionary of the csv.
     """
     
-    rootname = "tic%012u_s%04u-%1u-%1u" %  (ticid, sector, camera, ccd)
+    rootname = "tic%012u_s%04u-%1u-%1u" %  (ticid, sector, cam, ccd)
     path = "tic%012u/" % ticid
     bls_name = "%s_plsearch.csv" % rootname
     det_name = "%s_detrend.fits" % rootname
     lc_name = "%s_stlc.fits" % rootname
     
+    if detrend_bucket[0]=="/":
+        det_hdu = fits.open(detrend_bucket+path+det_name)
+        bls = np.loadtxt(bls_bucket+path+bls_name,delimiter=',')
+    else:
+        det_hdu = loadFitsFromUri(detrend_bucket, path, det_name)
+        bls = loadCsvFromUri(bls_bucket, path, bls_name)
+    if ffilc_bucket[0]=="/":
+        raw_hdu = fits.open(ffilc_bucket+path+lc_name)
+    else:
+        raw_hdu = loadFitsFromUri(ffilc_bucket,path, lc_name)
     
-    det_hdu = loadFitsFromUri(detrend_bucket, path, det_name)
-    raw_hdu = loadFitsFromUri(ffilc_bucket,path, lc_name)
-    bls = loadCsvFromUri(bls_bucket, path, bls_name)
     
     #Get the number of signals found by the bls.
     if len(bls.shape) == 1:
@@ -64,7 +71,7 @@ def generate_plots_s3(ticid,sector,cam,ccd, \
     ave_im = raw_hdu[2].data
     meta={}
     meta['sector'] = sector
-    meta['cam'] = camera
+    meta['cam'] = cam
     meta['imloc'] = (head['CUBECOL'], head['CUBEROW'])
     meta['radius'] = head['AP_RAD']
     
@@ -88,7 +95,7 @@ def generate_plots_s3(ticid,sector,cam,ccd, \
                                       meta['dur'], meta['epoch'])
         out_name = "%s-%02i_plot.png" % (rootname, meta['pn'])
         output = outpath+out_name
-        plt.figure(figsize=(11,11))
+        plt.figure(figsize=(10,12))
         report.summaryPlot1(time_raw, raw, time_det, detrend, model, ave_im, meta)
         
         plt.savefig(output)
@@ -113,43 +120,93 @@ def loadCsvFromUri(bucketName, strawPath, fn):
     thebytes = obj.get()['Body'].read()
     return np.loadtxt(io.BytesIO(thebytes),delimiter=',') 
 
+
+#%%
+    #This one is a TOI.
+ticid = 147203645
+sector = 1
+cam = 1
+ccd = 1
+generate_plots_s3(ticid, sector, cam, ccd,
+                  bls_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
+                   detrend_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
+                   ffilc_bucket="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/straw-lightcurves/", \
+                   outpath="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/testing/")
     
 #%%
-ticid = 441182092
+ticid = 32155340
 sector = 1
 cam = 1
 ccd = 3
-generate_plots_s3(ticid,sector,cam,ccd)
+generate_plots_s3(ticid, sector, cam, ccd,
+                  bls_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
+                   detrend_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
+                   ffilc_bucket="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/straw-lightcurves/", \
+                   outpath="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/testing/")
+#%%
+ticid = 29753525
+sector = 1
+cam = 1
+ccd = 4
+generate_plots_s3(ticid, sector, cam, ccd,
+                  bls_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
+                   detrend_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
+                   ffilc_bucket="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/straw-lightcurves/", \
+                   outpath="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/testing/")
+#%%
+ticid = 2028169354
+sector = 1
+cam = 1
+ccd = 3
+generate_plots_s3(ticid, sector, cam, ccd,
+                  bls_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
+                   detrend_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
+                   ffilc_bucket="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/straw-lightcurves/", \
+                   outpath="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/testing/")
+
+#%%
+#Example with lots of outliers.
+ticid = 2028237787
+sector = 1
+cam = 1
+ccd = 3
+generate_plots_s3(ticid, sector, cam, ccd,
+                  bls_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
+                   detrend_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
+                   ffilc_bucket="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/straw-lightcurves/", \
+                   outpath="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/testing/")
+
 
 #%%
 #Run all of them 
-runfile="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/s0001-kdwarf/runfile.txt"
-info = np.loadtxt(runfile)
-ticids = info[:,1]
-sectors = info[:,2]
-cams= info[:,3]
-ccds = info[:,4]
-
-for j, tic in enumerate(ticids[45:]):
-    try:
-        generate_plots_s3(int(tic), sectors[j], cams[j], ccds[j])
-        plt.close('all')
-    except:
-        print("Missing %i" % int(tic))
-        pass
+def run_all():
+    runfile="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/s0001-kdwarf/runfile.txt"
+    info = np.loadtxt(runfile)
+    ticids = info[:,1]
+    sectors = info[:,2]
+    cams= info[:,3]
+    ccds = info[:,4]
+    
+    for j, tic in enumerate(ticids[45:]):
+        try:
+            generate_plots_s3(int(tic), sectors[j], cams[j], ccds[j])
+            plt.close('all')
+        except:
+            print("Missing %i" % int(tic))
+            pass
 
 
 #%%
 blsfile = "/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/s0001-kdwarf/all_bls_results.csv"
 
 results = p.read_csv(blsfile,comment='#')
-results['id'] = list(map(lambda x: "%12.02f" % x, results['tic.pn']))
+results['id'] = list(map(lambda x: "%015.02f" % x, results['tic.pn']))
 print(results.columns)
 
 #%%
 want = (results['bls_snr'] > 3) & \
         (results['n_trans_good'] > 2)
-results.sort_values('bls_snr', ascending=False, inplace=True)
+results.sort_values('n_trans_good', ascending=False, inplace=True)
 
 print(results[want][['id','bls_period_day','bls_depth_frac','bls_snr','n_trans_good']])
 
