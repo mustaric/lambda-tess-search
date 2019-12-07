@@ -115,6 +115,7 @@ def get_object_coords(ticid, sector, nFFI=10, cloud = False, local_dir = "."):
     ccd = 0
     col = 0
     row = 0
+
     
     if len(results)>0:
         
@@ -127,12 +128,13 @@ def get_object_coords(ticid, sector, nFFI=10, cloud = False, local_dir = "."):
     if camera > 0:
         secid = make_secid(sector, camera, ccd)
         ffi_file_path = get_wcsfile(secid)
+        col, row = get_xy(ffi_file_path, coord)
         #filtered = id_wcs_file(secid)
 
     #ffi_file_path = download_wcs_file(filtered, local_dir, n=nFFI, cloud=cloud)
     #I need to create a file lookup in here, but for the moment.
 
-    col, row = get_xy(ffi_file_path, coord)
+    
 
             
     return camera, ccd, col, row

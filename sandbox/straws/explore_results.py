@@ -68,12 +68,21 @@ def generate_plots_s3(ticid,sector,cam,ccd, \
     #plt.plot(time_det,detrend,'.')
     
     head = raw_hdu[1].header
-    ave_im = raw_hdu[2].data
+    try:
+        ave_im = raw_hdu[2].data
+    except:
+        ave_im = np.zeros((10,10))    
     meta={}
     meta['sector'] = sector
     meta['cam'] = cam
-    meta['imloc'] = (head['CUBECOL'], head['CUBEROW'])
+    meta['ccd'] = ccd
+    try:
+        meta['imloc'] = (head['CUBECOL'], head['CUBEROW'])
+    except:
+        meta['imloc'] = (head['APCEN_Y'], head['APCEN_X'])
+        
     meta['radius'] = head['AP_RAD']
+    
     
     for i in range(N):
         #print(i)
@@ -127,6 +136,9 @@ ticid = 147203645
 sector = 1
 cam = 1
 ccd = 1
+path = "/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/straw-lightcurves/"
+filename = "tic%012u/tic%012u_s%04u-%1u-%1u_stlc.fits" % (ticid,ticid, sector,cam,ccd)
+app_bls.test_generic(filename,path)
 generate_plots_s3(ticid, sector, cam, ccd,
                   bls_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
                    detrend_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
@@ -134,10 +146,14 @@ generate_plots_s3(ticid, sector, cam, ccd,
                    outpath="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/testing/")
     
 #%%
+#EB example
 ticid = 32155340
 sector = 1
 cam = 1
 ccd = 3
+path = "/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/straw-lightcurves/"
+filename = "tic%012u/tic%012u_s%04u-%1u-%1u_stlc.fits" % (ticid,ticid, sector,cam,ccd)
+app_bls.test_generic(filename,path)
 generate_plots_s3(ticid, sector, cam, ccd,
                   bls_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
                    detrend_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
@@ -148,22 +164,55 @@ ticid = 29753525
 sector = 1
 cam = 1
 ccd = 4
+path = "/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/straw-lightcurves/"
+filename = "tic%012u/tic%012u_s%04u-%1u-%1u_stlc.fits" % (ticid,ticid, sector,cam,ccd)
+app_bls.test_generic(filename,path)
 generate_plots_s3(ticid, sector, cam, ccd,
                   bls_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
                    detrend_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
                    ffilc_bucket="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/straw-lightcurves/", \
                    outpath="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/testing/")
 #%%
-ticid = 2028169354
+ticid = 2028097053
 sector = 1
 cam = 1
-ccd = 3
+ccd = 2
+path = "/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/straw-lightcurves/"
+filename = "tic%012u/tic%012u_s%04u-%1u-%1u_stlc.fits" % (ticid,ticid, sector,cam,ccd)
+app_bls.test_generic(filename, path)
 generate_plots_s3(ticid, sector, cam, ccd,
                   bls_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
                    detrend_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
                    ffilc_bucket="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/straw-lightcurves/", \
                    outpath="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/testing/")
-
+#%%
+#lc from PL bert FFI run
+ticid = 1129033
+sector = 4
+cam = 1
+ccd = 1
+path = "/Users/smullally/TESS/lambdaSearch/bertLC/"
+filename = "tic%012u/tic%012u_s%04u-%1u-%1u_lcc.fits" % (ticid,ticid, sector,cam,ccd)
+app_bls.test_generic(filename, path)
+generate_plots_s3(ticid, sector, cam, ccd,
+                  bls_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
+                   detrend_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
+                   ffilc_bucket="/Users/smullally/TESS/lambdaSearch/bertLC/", \
+                   outpath="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/testing/")
+#%%
+#lc from PL bert FFI run
+ticid = 402026209
+sector = 2
+cam = 2
+ccd = 4
+path = "/Users/smullally/TESS/lambdaSearch/bertLC/"
+filename = "tic%012u/tic%012u_s%04u-%1u-%1u_lcc.fits" % (ticid,ticid, sector,cam,ccd)
+app_bls.test_generic(filename, path)
+generate_plots_s3(ticid, sector, cam, ccd,
+                  bls_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
+                   detrend_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
+                   ffilc_bucket="/Users/smullally/TESS/lambdaSearch/bertLC/", \
+                   outpath="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/testing/")
 #%%
 #Example with lots of outliers.
 ticid = 2028237787
@@ -176,7 +225,20 @@ generate_plots_s3(ticid, sector, cam, ccd,
                    ffilc_bucket="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/straw-lightcurves/", \
                    outpath="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/testing/")
 
-
+#%%
+#Examples with a second noisy section
+ticid = 302296676
+ticid = 302296969
+ticid = 302259268
+ticid = 302333689
+sector = 1
+cam = 1
+ccd = 4
+generate_plots_s3(ticid, sector, cam, ccd,
+                  bls_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
+                   detrend_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
+                   ffilc_bucket="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/straw-lightcurves/", \
+                   outpath="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/testing/")
 #%%
 #Run all of them 
 def run_all():

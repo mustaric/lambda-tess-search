@@ -33,13 +33,13 @@ def lambda_handler(event, context):
     #Input variables
     aminP = 0.7
     amaxP = 12.0
-    durs = [0.75, 1, 3, 5, 7]
+    durs = [0.75, 1.25, 3, 5, 7]
     min_snr = 3.9
     max_tce = 4
     frac_remain = 0.8
-    det_window = 36
+    det_window = 42
     noise_window = 12
-    n_sigma = 3.5
+    n_sigma = 3.9
     search_bucket = "tesssearchresults"
     #---------
     
@@ -71,7 +71,7 @@ def lambda_handler(event, context):
         time, flux, qflags, phead = io.read_lightcurve_lambda_local(bucket, \
                                             b_filename, local_filename)
     
-    print(time,flux,qflags)
+    #print(time,flux,qflags)
     ticid, camera, sector, ccd = io.read_header(phead)
 
     namestr = "tic%012u/tic%012u_s%04u-%1u-%1u" % \
@@ -90,7 +90,7 @@ def lambda_handler(event, context):
                                      minSnr=min_snr, \
                                      fracRemain=frac_remain,\
                                      maxTces=max_tce, minP=aminP, maxP=amaxP)
-    print(results)
+    #print(results)
     
     #Now write out results.
     
@@ -127,7 +127,7 @@ def lambda_handler(event, context):
     return {
             "statusCode": 200,
             "body": json.dumps({
-                    "outname": local_dir+bucket_detrend_name,
+                    "outname": bucket_detrend_name,
                     "response": str(resp),
                     "period": str(results[0][0]),
                     "epoch": str(results[0][1])

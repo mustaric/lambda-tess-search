@@ -25,7 +25,7 @@ def clean_timeseries(time, flux, qflags, det_window, noise_window, n_sigma, sect
     det_time = time[~flagged]
     
     #Look for 3 bad sections on length of around 2 days (window = 90)
-    std_bad, med_std = running_std_gap(med_det, 70, N=3, nSigTimes=4)
+    std_bad, med_std = running_std_gap(med_det, 70, N=3, nSigTimes=4.5)
     #print(len(std_bad[std_bad]))
     
     
@@ -34,7 +34,7 @@ def clean_timeseries(time, flux, qflags, det_window, noise_window, n_sigma, sect
     
     #Final Pass for single point outliers that are not periodic
     spo_idx = findOutliers(good_time, good_flux, gap=None,
-                 threshold_sigma=3.4,
+                 threshold_sigma=2.75,
                  precision_days=0.0209,
                  maxClusterLen = 2
                  )   
@@ -101,8 +101,8 @@ def loadGapInfoBySector(time, sector):
         gaps |= (1517 <= time) & (time <= 1491.62) # orbit range
         gaps |= (1502.5 <= time) & (time <= 1505.01) #inter sector gap
     elif sector == 16:
-        gaps |= (1517 <= time) & (time <= 1491.62) # orbit range
-        gaps |= (1502.5 <= time) & (time <= 1505.01) #inter sector gap
+        gaps |= (1738.65 <= time) & (time <= 1763.31) # orbit range
+        gaps |= (1750.35 <= time) & (time <= 1751.652) #inter sector gap
         
 
 #        gaps |= (<= time) & (time <= )  #
