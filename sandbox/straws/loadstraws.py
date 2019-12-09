@@ -65,7 +65,7 @@ class LoadTessCube(object):
             %(self.sector, self.camera, self.ccd, self.path)
 
     def __call__(self, col, row):
-        return self.get(col, row, min_pix_size=20)
+        return self.get(col, row, min_size_pix=20)
 
     def loadMetadata(self):
         """Load metadata on the straws stored in `path`
