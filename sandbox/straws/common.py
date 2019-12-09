@@ -46,6 +46,15 @@ def makeStrawName(path, sector, camera, ccd, col, row):
     return path, fn
 
 
+def getMetadataPath(path, sector, camera, ccd):
+    fn = os.path.join(path, 
+                      "sector%02i" %(sector),
+                      "camera%02i" %(camera),
+                      "ccd%i" %(ccd),
+                      METADATA_FILE)
+    return fn
+
+
 def roundToNearestBelow(x, level):
     """Round a number down to the nearest round number
 

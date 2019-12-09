@@ -27,12 +27,14 @@ class LoadTessCube(object):
     Load a datacube of TESS imagery from straws stored on disk.
     """
 
-    def __init__(self, path, sector):
+    def __init__(self, path, sector, camera, ccd):
 
         #Set path to None for some testing
         if path is not None:
             self.path = path
             self.sector = sector
+            self.camera = camera
+            self.ccd = ccd
             self.loadMetadata()
 
     def __repr__(self):
@@ -47,22 +49,26 @@ class LoadTessCube(object):
         Metadata is stored in a json file and contains details like ccd sizes,
         number of cadences, strawsize, etc.
         """
-        sectorStr = "sector%02i" %(self.sector)
-        fn = os.path.join(self.path, sectorStr, common.METADATA_FILE)
+        fn = common.getMetadataPath(self.outPath, 
+                                    self.sector,
+                                    self.camera,
+                                    self.ccd)
+
         with open(fn) as fp:
             props = json.load(fp)
 
-        assert self.sector == props['sector']
-        
         dataver = props['__straw_version__']
         expectver = common.STRAW_VERSION
         if  dataver !=  expectver:
             raise ValueError("Expected version %s straws, got version %s" %(expectver, dataver))
+
+        assert self.sector == props['sector']
+        assert self.camera == props['camera']
+        assert self.ccd == props['ccd']
             
         self.setMetadataFromDict(props)
         
     def setMetadataFromDict(self, props):
-
         self.__dict__.update(props)
         self.nCols, self.nRows = self.nColsRows
         self.nCadences = len(self.datestampList)
