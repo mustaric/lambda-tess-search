@@ -49,7 +49,7 @@ def makeStrawName(path, sector, camera, ccd, col, row):
 def getMetadataPath(path, sector, camera, ccd):
     fn = os.path.join(path, 
                       "sector%02i" %(sector),
-                      "camera%02i" %(camera),
+                      "camera%i" %(camera),
                       "ccd%i" %(ccd),
                       METADATA_FILE)
     return fn

@@ -1,4 +1,5 @@
 {
+  "__straw_version__": "3.0.0",
   "outPath": "/home/sthomp/TESS/s0001-straws/",
   "ffiPath": "/home/sthomp/TESS/s0001/",
   "sector": 1,
