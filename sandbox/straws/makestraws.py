@@ -65,7 +65,7 @@ import datetime
 import inspect
 import json
 
-from common import  METADATA_FILE, STRAW_VERSION
+from common import  STRAW_VERSION
 import common
 
 class MakeTessStraw(object):
