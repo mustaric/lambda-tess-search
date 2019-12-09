@@ -40,8 +40,8 @@ class LoadTessCube(object):
     def __repr__(self):
         return "<TessCube object for sector %s. Data at %s>" %(self.sector, self.path)
 
-    def __call__(self, camera, ccd, col, row):
-        return self.get(camera, ccd, col, row, min_pix_size=20)
+    def __call__(self, col, row):
+        return self.get(col, row, min_pix_size=20)
 
     def loadMetadata(self):
         """Load metadata on the straws stored in `path`
@@ -90,7 +90,7 @@ class LoadTessCube(object):
         """Return a integers from zero to length of datacube"""
         return np.arange(self.nCadences, dtype=int)
     
-    def get(self, camera, ccd, col, row, min_size_pix=None):
+    def get(self, col, row, min_size_pix=None):
         """Get a data cube
 
         The data cube is garaunteed to be square and at least `min_size_pix`
@@ -101,15 +101,13 @@ class LoadTessCube(object):
 
         Inputs
         -------------
-        camera, ccd, col, row
-            (int) Properties of the straw. col and row refer to coordinates of
-            the bottom-left corner of the straw.
+        col, row
+            (int) Location on CCD to load a straw for
 
         Optional Inputs
         -----------------
         min_size_pix
             (int) Minimum width and height of the returned datacube
-
 
         Returns
         -----------
@@ -132,7 +130,7 @@ class LoadTessCube(object):
         ds = self.strawSize
         for i in range(c0, c1, ds):
             for j in range(r0, r1, ds):
-                straw = self.getStraw(camera, ccd, i, j)
+                straw = self.getStraw(i, j)
                 
                 assert straw.shape == (self.nCadences, ds, ds)
 
