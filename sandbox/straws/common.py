@@ -19,6 +19,7 @@ import numpy as np
 import os
 
 METADATA_FILE = 'metadata.json'
+STRAW_VERSION = '3.0.0'
 
 def makeStrawName(path, sector, camera, ccd, col, row):
     """Constructh the straw name

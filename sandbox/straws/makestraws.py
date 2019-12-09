@@ -65,7 +65,7 @@ import datetime
 import inspect
 import json
 
-from common import  METADATA_FILE
+from common import  METADATA_FILE, STRAW_VERSION
 from common import makeStrawName
 
 
@@ -263,6 +263,7 @@ class MakeTessStraw(object):
         params['__lineno__'] = lineno
         params['__date__'] = str(datetime.datetime.now())
         params['__user__'] = os.environ['USER']
+        params['__straw_version__'] = STRAW_VERSION
         
         params.update(self.__dict__)
         text = json.dumps(params, indent=2)

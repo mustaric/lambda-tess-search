@@ -39,7 +39,7 @@ class LoadTessCube(object):
         return "<TessCube object for sector %s. Data at %s>" %(self.sector, self.path)
 
     def __call__(self, camera, ccd, col, row):
-        return self.get(camera, ccd, col, row, 20)
+        return self.get(camera, ccd, col, row, min_pix_size=20)
 
     def loadMetadata(self):
         """Load metadata on the straws stored in `path`
@@ -53,6 +53,12 @@ class LoadTessCube(object):
             props = json.load(fp)
 
         assert self.sector == props['sector']
+        
+        dataver = props['__straw_version__']
+        expectver = common.STRAW_VERSION
+        if  dataver !=  expectver:
+            raise ValueError("Expected version %s straws, got version %s" %(expectver, dataver))
+            
         self.setMetadataFromDict(props)
         
     def setMetadataFromDict(self, props):
