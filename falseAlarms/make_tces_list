@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Jun  7 15:54:23 2020
+
+@author: smullally
+"""
+
+from astroquery.mast import Catalogs
+import planetSearch as ps
+import gen_lightcurve as lc
+import numpy as np
+
+kiclist = [1726211, 1849235, 1865595,1866174,1866366, 1867706, 1868101,1868918, 
+           1870057,1870225,1870849,1872166,1872210, 1872842, 1872948, 
+           1873204, 1873552]
+
+sectors = [14]
+
+det_window = 23
+noise_window = 15
+n_sigma = 4  #noise reject sigma
+minper = 0.5
+maxper = 7.15
+minsnr  = 1.5
+durs = [1,2,4,8]
+
+final_results = []
+final_stats = []
+final_star = []
+
+for kic in kiclist:
+    
+    catdata = Catalogs.query_criteria(catalog="Tic", KIC=kic)
+    listdata = list(catdata[0])
+    ticid = catdata['ID']
+    tmag = catdata['Tmag']
+    teff = catdata['Teff']
+    print(kic, int(ticid))
+    
+    for sector in sectors:
+        stardata = listdata.append(sector)
+        try:
+            time, flux, flags = lc.eleanor_corr(int(ticid), sector)
+            
+            print(len(time))
+            good_time, meddet_flux = ps.clean_timeseries(time, flux, flags, det_window, \
+                                    noise_window, n_sigma, sector)
+                
+            results, stats = ps.identifyTces(good_time, meddet_flux, bls_durs_hrs=durs,
+                                     minSnr=minsnr, fracRemain=0.5, 
+                                     maxTces=30, minP=minper, maxP=maxper)
+            print(results)
+            
+            for t in range(len(results)):
+                r = results[t] + sector
+                final_results.append(results[t])
+                final_stats.append(stats[t])
+                final_star.append(stardata)
+            
+        except (ValueError, IndexError):
+            
+            print("No data found. %s, S%u" % (int(ticid), int(sector)))
+        
+
+tce_results=np.array(final_results)
+tce_stats = np.array(final_stats)
+tce_star = np.array(final_star)
+#%%
+#----
+import matplotlib.pyplot as plt
+def plot_tce_hist(results):
+    plt.figure()
+    plt.subplot(131)
+    plt.hist(results[:,0],30)
+    plt.xlabel("Period")
+    
+    plt.subplot(132)
+    plt.hist(results[:,1],30)
+    plt.xlabel("Tzero")
+    
+    plt.subplot(133)
+    plt.hist(results[:,4],30)
+    plt.xlabel("SNR")
+    
+def plot_transit_times(stats):
+    plt.figure()
+    for s in stats:
+        plt.plot(s['per_transit_log_likelihood'], s['transit_times'],'.')
+    plt.xlabel('log likelihood')
+    plt.ylabel('transit time')
+    
+def plot_period_snr(results):
+    plt.figure()
+    plt.plot(results[:,0], results[:,4], 'k.')
+    plt.xlabel('Period')
+    plt.ylabel('SNR')
+    
+
+plot_tce_hist(tce_results)
+plot_transit_times(tce_stats)
+plot_period_snr(tce_results)

@@ -1,0 +1,13 @@
+Code to create this target is is in falseAlarms/target_selection.
+It was made by selecting all observed Kepler stars without a known
+KOI or EB (villanova) and brighter than 14th magnitude.
+Thisresulting in just over 70,000 targets.
+
+2020-10-09
+Ihave the code in place to do a basic target selection.
+We can select based on brightness adn elimitate anything with a large contamination ratio.
+I also included those that were not in the CTL and where I couldn't find a nearby contaminating star, but
+in the end we maybe don't need to really include these.
+
+I then used tess-point to find those on silicon.
+See the target_selection code.
