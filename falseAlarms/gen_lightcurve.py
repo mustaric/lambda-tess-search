@@ -34,3 +34,33 @@ def eleanor_corr(ticid, sector, pxsize = 19):
     
     return data.time, data.corr_flux, data.quality
 
+
+def hlsp(ticid, sector, author="tess-spoc"):
+    """
+    
+
+    Parameters
+    ----------
+    ticid : int
+        DESCRIPTION.
+    sector : int
+        Sector of observations to vet
+    author : string, OPTIONAL
+        options include tess-spoc and tess-qlp.
+        The default is "tess-spoc".
+
+    Returns
+    -------
+    lc : lightkurve object
+        lightkurve object of the data requested.
+
+    """
+    
+    print(f'TIC {ticid}')
+    
+    lc = lk.search_lightcurve(f"TIC {ticid}", sector=sector,
+                              cadence="ffi",author=author).download()
+    
+    return lc
+    
+    

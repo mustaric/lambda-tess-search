@@ -34,9 +34,9 @@ def clean_timeseries(time, flux, qflags, det_window, noise_window, n_sigma, sect
     
     #Final Pass for single point outliers that are not periodic
     spo_idx = findOutliers(good_time, good_flux, gap=None,
-                 threshold_sigma=2.75,
-                 precision_days=0.0209,
-                 maxClusterLen = 2
+                 threshold_sigma=3.0,
+                 precision_days=0.02085,
+                 maxClusterLen = 3
                  )   
     #print("spo_idx")
     #print(spo_idx)
@@ -98,11 +98,12 @@ def loadGapInfoBySector(time, sector):
         gaps |= (1477.0 <= time) & (time <= 1478.41)  #inter orbit gap
         gaps |= (1463.6 <= time) & (time <= 1468.26998)  #before beginning of 6
     elif sector == 7:
-        gaps |= (1517 <= time) & (time <= 1491.62) # orbit range
+        #gaps |= (1517 <= time) & (time <= 1491.62) # orbit range
         gaps |= (1502.5 <= time) & (time <= 1505.01) #inter sector gap
     elif sector == 16:
-        gaps |= (1738.65 <= time) & (time <= 1763.31) # orbit range
-        gaps |= (1750.35 <= time) & (time <= 1751.652) #inter sector gap
+        gaps |= (1738.65 >= time) 
+        gaps |= (time >= 1763.31) # orbit range
+        gaps |= (1750.25 <= time) & (time <= 1751.659) #inter sector gap
         
 
 #        gaps |= (<= time) & (time <= )  #
@@ -344,6 +345,7 @@ def identifyTces(time, flux, bls_durs_hrs=[1,2,4,8,12], minSnr=3, fracRemain=0.5
 
     return np.array(results), np.array(stats)
 
+#from pdb import set_trace as debug
 
 def findOutliers(time, flux, gap=None,
                  threshold_sigma=4,
@@ -402,6 +404,7 @@ def findOutliers(time, flux, gap=None,
 #    fluxDetrended = medianDetrend(flux, 3)
     fluxDetrended = np.diff(flux)
     fluxDetrended = np.append(fluxDetrended, [0])  #Keep the length the same
+    #debug()
     assert len(fluxDetrended) == len(flux)
 
     #Find outliers as too far away from the mean.
