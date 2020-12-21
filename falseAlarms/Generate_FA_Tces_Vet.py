@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Create an eleanor light curve and loop over a BLS
-to create TCEs.
-Write out the TCEs to a file.
+Generate TCEs from HLSP light curves 
+Vet those TCEs
+Do this for a list of TIC IDs that overlap Kepler Targets.
+Write out to file.
 """
 
 import sys

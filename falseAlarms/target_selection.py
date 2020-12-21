@@ -23,7 +23,6 @@ import pandas as p
 from astropy.io import ascii
 from astroquery.mast import Catalogs
 import numpy as np
-from astropy.io import ascii
 
 
 #%%
@@ -126,10 +125,13 @@ ascii.write(targets, newfile,format='csv')
     
 #%%
 #Find uncrowded stars
-contamination_limit = 0.15
+targets = ascii.read(newfile, format='csv')
+#%%
+contamination_limit = 0.25
 uncrowded = targets['contratio'] < contamination_limit
 
 good_targets = targets[uncrowded]
+good_targets = targets
 print(len(good_targets))
 
 #%%
@@ -148,14 +150,14 @@ outid, outlong, outlat, sector, cam, ccd, colpix, rowpix, scinfo \
 #%%
 # Now do all in a list, sending in the scinfo from above for speed.
 outid, outlong, outlat, sector, cam, ccd, colpix, rowpix, scinfo \
-   = tess_stars2px_function_entry(ticids[0:2000], ras[0:2000], decs[0:2000])
+   = tess_stars2px_function_entry(ticids, ras, decs)
 
 data = {'TIC':outid, 'Sector':sector, 'Camera':cam, 'ccd':ccd, \
         'colpix':colpix, 'rowpix':rowpix} 
 
 obs = p.DataFrame(data = data)
 
-obsfile = "/Users/smullally/Science/tess_false_alarms/keplerTargets/target_selection/tic_uncrowded_bright-sectorsObs.csv"
+obsfile = "/Users/smullally/Science/tess_false_alarms/keplerTargets/target_selection/tic_bright14-sectorsObs-all.csv"
 
 obs.to_csv(obsfile)
     
