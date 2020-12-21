@@ -56,7 +56,7 @@ def hlsp(ticid, sector, author="tess-spoc"):
 
     """
     
-    print(f'TIC {ticid}')
+    #print(f'TIC {ticid}')
     
     lc = lk.search_lightcurve(f"TIC {ticid}", sector=sector,
                               cadence="ffi",author=author).download()
