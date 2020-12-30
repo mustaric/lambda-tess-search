@@ -24,7 +24,7 @@ def generate_plots_s3(ticid,sector,cam,ccd, \
                    outpath="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/s0001-kdwarf/plots/"):
     
     """
-    Given a TICID, sector, camera, ccd and the bucket locations.
+    Given a TICID, sector, camera, ccd (all integers) and the bucket locations.
     generate a one page plot for each signal found by the bls using 
     the information in those files.
     bls_bucket contains the search results csv file.
@@ -43,6 +43,7 @@ def generate_plots_s3(ticid,sector,cam,ccd, \
         det_hdu = fits.open(detrend_bucket+path+det_name)
         bls = np.loadtxt(bls_bucket+path+bls_name,delimiter=',')
     else:
+        print(detrend_bucket,path,det_name)
         det_hdu = loadFitsFromUri(detrend_bucket, path, det_name)
         bls = loadCsvFromUri(bls_bucket, path, bls_name)
     if ffilc_bucket[0]=="/":
@@ -62,11 +63,16 @@ def generate_plots_s3(ticid,sector,cam,ccd, \
     
     time_raw = raw_hdu[1].data['TIME']
     raw = raw_hdu[1].data['SAP_FLUX']
+    bkg = raw_hdu[1].data['SAP_BKG']
     time_det = det_hdu[1].data['TIME']
     detrend = det_hdu[1].data['DETREND_FLUX']
-
-    #plt.plot(time_det,detrend,'.')
-    
+    """
+    plt.figure()
+    ax = plt.subplot(211)
+    plt.plot(time_raw,raw,'.')
+    plt.subplot(212, sharex=ax)
+    plt.plot(time_raw,bkg, 'r.')
+    """
     head = raw_hdu[1].header
     try:
         ave_im = raw_hdu[2].data
@@ -109,6 +115,8 @@ def generate_plots_s3(ticid,sector,cam,ccd, \
         
         plt.savefig(output)
         print(output)
+    
+    return raw_hdu[1].data
 
     
 def loadFitsFromUri(bucketName, strawPath, fn):
@@ -131,6 +139,45 @@ def loadCsvFromUri(bucketName, strawPath, fn):
 
 
 #%%
+#December 9, 2019
+#For S0001 run of Tmag 11-14 stars. all 60,000
+path = "/Users/smullally/TESS/lambdaSearch/s01StrawRun60/blsResults"
+
+good_ones = []
+filenames = []
+
+for root,dirs,files in os.walk(path):
+    for f in files:
+        if f[-10:] == "search.csv":
+            blsResults = np.loadtxt(root+"/"+f, comments='#',delimiter=',')
+            if len(blsResults) == 7:
+                blsResults = np.reshape(blsResults,(1,7))
+            for result in blsResults:
+                if ((result[4]>4) & (result[4]<=7) & (result[5]>3)):
+                    #print(result)
+                    good_ones.append(result)
+                    filenames.append(f)
+
+
+#%%
+#December 9, 2019
+#A continuation of S0001 run. Run through good ones and make plots.
+import matplotlib
+matplotlib.use('Agg')
+plotpath = "/Users/smullally/TESS/lambdaSearch/s01StrawRun60/blsResults/plot/second_tier/"
+for filename in filenames:
+    ticid = int(filename[3:15])
+    sector = int(filename[20:21])
+    cam = int(filename[22:23])
+    ccd = int(filename[24:25])
+    if sector == 1:    
+        try:
+            data = generate_plots_s3(ticid, sector,cam,ccd, outpath=plotpath)
+        except NoSuchKey:
+            pass
+matplotlib.use('Qt5Agg')                
+
+#%%
     #This one is a TOI.
 ticid = 147203645
 sector = 1
@@ -139,12 +186,14 @@ ccd = 1
 path = "/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/straw-lightcurves/"
 filename = "tic%012u/tic%012u_s%04u-%1u-%1u_stlc.fits" % (ticid,ticid, sector,cam,ccd)
 app_bls.test_generic(filename,path)
-generate_plots_s3(ticid, sector, cam, ccd,
+
+    generate_plots_s3(ticid, sector, cam, ccd,
                   bls_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
                    detrend_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
                    ffilc_bucket="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/straw-lightcurves/", \
                    outpath="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/testing/")
-    
+except NoSuchKey:
+    pass    
 #%%
 #EB example
 ticid = 32155340
@@ -155,6 +204,22 @@ path = "/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/straw-lightcurv
 filename = "tic%012u/tic%012u_s%04u-%1u-%1u_stlc.fits" % (ticid,ticid, sector,cam,ccd)
 app_bls.test_generic(filename,path)
 generate_plots_s3(ticid, sector, cam, ccd,
+                  bls_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
+                   detrend_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
+                   ffilc_bucket="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/straw-lightcurves/", \
+                   outpath="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/testing/")
+#%%
+#sector 16
+#Planet with outliers
+ticid = 229760249
+ticid = 233738446
+sector = 16
+cam = 3
+ccd = 1
+path = "/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/straw-lightcurves/"
+filename = "tic%012u/tic%012u_s%04u-%1u-%1u_stlc.fits" % (ticid,ticid, sector,cam,ccd)
+app_bls.test_generic(filename,path)
+data=generate_plots_s3(ticid, sector, cam, ccd,
                   bls_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
                    detrend_bucket="/Users/smullally/TESS/lambdaSearch/test/tesssearchresults/", \
                    ffilc_bucket="/Users/smullally/TESS/lambdaSearch/strawTests/blsResults/straw-lightcurves/", \
