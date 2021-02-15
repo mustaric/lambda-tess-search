@@ -65,9 +65,8 @@ import datetime
 import inspect
 import json
 
-from common import  METADATA_FILE
-from common import makeStrawName
-
+from common import  STRAW_VERSION
+import common
 
 class MakeTessStraw(object):
     def __init__(self, ffiPath, outPath, sector, camera, ccd):
@@ -201,12 +200,12 @@ class MakeTessStraw(object):
             (int) Properties of the straw. col and row refer to coordinates of
             the bottom-left corner of the straw.
         """
-        path, fn = makeStrawName(self.outPath,
-                                 self.sector,
-                                 camera,
-                                 ccd,
-                                 col,
-                                 row)
+        path, fn = common.makeStrawName(self.outPath,
+                                        self.sector,
+                                        camera,
+                                        ccd,
+                                        col,
+                                        row)
 
         if not os.path.exists(path):
             os.makedirs(path)
@@ -253,8 +252,11 @@ class MakeTessStraw(object):
         """Save a metadata file to a local filestore
         """
 
-        fn = os.path.join(self.outPath, "sector%02i" %(self.sector), METADATA_FILE)
-
+        fn = common.getMetadataPath(self.outPath, 
+                                    self.sector,
+                                    self.camera,
+                                    self.ccd)
+            
         frame = inspect.currentframe().f_back
         (filename, lineno, funcname, _, _) = inspect.getframeinfo(frame)
         params = collections.OrderedDict()
@@ -263,6 +265,7 @@ class MakeTessStraw(object):
         params['__lineno__'] = lineno
         params['__date__'] = str(datetime.datetime.now())
         params['__user__'] = os.environ['USER']
+        params['__straw_version__'] = STRAW_VERSION
         
         params.update(self.__dict__)
         text = json.dumps(params, indent=2)

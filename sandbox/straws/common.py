@@ -19,6 +19,7 @@ import numpy as np
 import os
 
 METADATA_FILE = 'metadata.json'
+STRAW_VERSION = '3.0.0'
 
 def makeStrawName(path, sector, camera, ccd, col, row):
     """Constructh the straw name
@@ -43,6 +44,15 @@ def makeStrawName(path, sector, camera, ccd, col, row):
 
     fn = "straw-%02i-%i-%i-%04i-%04i.npy" %(sector, camera, ccd, col, row)
     return path, fn
+
+
+def getMetadataPath(path, sector, camera, ccd):
+    fn = os.path.join(path, 
+                      "sector%02i" %(sector),
+                      "camera%i" %(camera),
+                      "ccd%i" %(ccd),
+                      METADATA_FILE)
+    return fn
 
 
 def roundToNearestBelow(x, level):

@@ -34,7 +34,7 @@ class MonkeyLoadCube(loadstraws.LoadTessCube):
     more information.
     """
 
-    def getStraw(self, camera, ccd, col, row):
+    def getStraw(self, col, row):
 #        print(camera, ccd, col, row)
         shape = (self.nCadences, self.strawSize, self.strawSize)
         straw = np.zeros(shape)
@@ -51,13 +51,13 @@ def test_loadstraws_local():
     row = 255.1
     path = "testdata/smoke"
 
-    cubeObj = loadstraws.LoadTessCube(path, sector)
-    cube, cube_col, cube_row = cubeObj.get(camera, ccd, col, row, 
-                                           min_size_pix = 5)
+    cubeObj = loadstraws.LoadTessCube(path, sector, camera, ccd)
+    cube, cube_col, cube_row = cubeObj.get(col, row, min_size_pix = 5)
     assert cube.shape == (2,10,5), cube.shape
 
 
 def test_loadstraws_s3():
+    """Will fail until I update the remote s3 metadata.json"""
         
     #Faking it for testing
     sector = 1
@@ -67,17 +67,16 @@ def test_loadstraws_s3():
     row = 255.1
     path = ""
     bucket = "tess-straws"
-    cubeObj = loadstraws.LoadTessCubeS3(bucket, path, sector)
-    cube, cube_col, cube_row = cubeObj.get(camera, ccd, col, row, 
-                                           min_size_pix = 40)
+    cubeObj = loadstraws.LoadTessCubeS3(bucket, path, sector, camera, ccd)
+    cube, cube_col, cube_row = cubeObj.get(col, row, min_size_pix = 40)
     print(cube.shape)
 
 
 def test_bug1():
     """Fixing a bug reported by Susan in testing"""
-    obj = MonkeyLoadCube('./testdata/bug1', 1)
+    obj = MonkeyLoadCube('./testdata/bug1', 1, 1, 2)
 
-    cube, col, row = obj.get(1, 1, 221, 250, min_size_pix=40)
+    cube, col, row = obj.get( 221, 250, min_size_pix=40)
 
     nCad = obj.nCadences
     expect = (nCad, 100, 50)
@@ -87,7 +86,7 @@ def test_bug1():
 
 def test_pickABox():
 
-    obj = loadstraws.LoadTessCube(None, 0)
+    obj = loadstraws.LoadTessCube(None, 0, 1, 2)
     obj.nCols = 600
     obj.nRows = 700
     obj.nCadences = 40
