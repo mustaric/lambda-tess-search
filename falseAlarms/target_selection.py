@@ -76,6 +76,7 @@ targets = tic_data
 targets = ascii.read(filename, format='csv')
 
 #%%
+#Typical aperture depends on 
 #Depends on radial distance (2 pixels?) and magnitude differrence (within 2 magnitudes?)
 #
 def aperture_radii(Tmag):

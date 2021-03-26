@@ -66,7 +66,7 @@ fobj.close()
 #Now loop over targets in your list.
 #choice = (target_table['Sector']==14) | (target_table['Sector']==15)
 choice = (target_table['Sector']==14)
-for target in target_table[choice][0:200]:
+for target in target_table[choice][200:400]:
     
     ticid = target['TIC']
     sector = int(target['Sector'])
@@ -121,87 +121,4 @@ for target in target_table[choice][0:200]:
 fobj.close()
 
 
-#%%
-
-# ticid = 383724040	#(near to kepler10 but not kepler 10, in S15)
-# sector = 14
-# #time, flux, flags = lc.eleanor_corr(ticid, sector)
-# #Plot a sanity check.
-# #plt.figure()
-# #plt.plot(time,flux,'.')
-
-# lcdata = genlc.hlsp(ticid, sector, author='qlp')
-# lcdata.plot()
-
-
-
-#%%
-#Now work on the BLS
-
-# det_window = 29
-# noise_window = 21
-# n_sigma = 4  #noise reject sigma
-
-# time = lcdata.time.value
-# flux = lcdata.flux.value
-# flags = lcdata.quality.value
-
-# good_time, meddet_flux = ps.clean_timeseries(time, flux, flags, det_window, \
-#                                           noise_window, n_sigma, sector)
-
-# plt.subplot(211)
-# plt.plot(good_time, meddet_flux,'.', label="clean")
-# plt.subplot(212)
-# plt.plot(time,flux,'.', label="original")
-
-# #%%    
-# tce_list, stats = ps.identifyTces(good_time, meddet_flux, bls_durs_hrs=[1,2,4,8,12],
-#                                  minSnr=1, fracRemain=0.5, 
-#                                  maxTces=30, minP=None, maxP=None)
-# #%%
-
-# vetter_list = [vetters.Lpp(),
-#                    vetters.OddEven(),
-#                    vetters.TransitPhaseCoverage(),
-#                    vetters.Sweet()]
-
-# thresholds = {'snr' : 3,
-#               'norm_lpp' : 1,
-#               'tp_cover' : 0.5,
-#               'oe_sigma' : 3,
-#               'sweet' : 2.5}
-    
-
-
-# lcformat = lcdata.time.format
-# tce_lc = lk.LightCurve(time=good_time, flux=meddet_flux+1,
-#                         time_format=lcformat)
-
-# result_strings, disp, reason = vet_all_tces(tce_lc, tce_list, vetter_list)    
-
-# #%%
-# #Write the output for this one light curve.
-# output_dir = "/Users/smullally/Science/tess_false_alarms/vet_results/december2020/"
-# output_file = output_dir + "disposition.txt"
-# fobj = open(output_file, 'a')
-# for r in result_strings:
-#     print(r)
-#     fobj.write(r)
-    
-# fobj.close()
-
-# #%%
-# #Output
-# import pickle
-# import numpy as np
-
-# ddir = "/Users/smullally/TESS/planetSearch/keplerFA/test1/"
-# resultfile = "%s/tic%014u-s%02u-result.txt" %(ddir,ticid,sector)
-# statsfile = "%s/tic%014u-s%02u-stats.pkl" % (ddir,ticid, sector)
-# print(resultfile, statsfile)
-
-# with open(statsfile, 'w') as outfile:
-#     pickle.dump(stats, outfile)
-
-# np.savetxt(resultfile, results)
 
