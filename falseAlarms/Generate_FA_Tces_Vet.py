@@ -10,7 +10,6 @@ import sys
 # Fix path to use local code
 sys.path.append('/Users/smullally/Python_Code/lambda-tess-search/planetSearch/')
 sys.path.append('/Users/smullally/Python_Code/lambda-tess-search/falseAlarms/')
-sys.path[2] = '/Users/smullally/Python_Code/lightkurve/lightkurve'
 
 import planetSearch as ps
 import gen_lightcurve as genlc
@@ -33,7 +32,7 @@ run_descriptor = "2020dec30"
 
 #List of output information
 headerlist = ['target', 'pn', 'sector', 'period', 'epoch', 'depth', 
-              'duration', 'snr', 'dispotion', 'reason']
+              'duration', 'snr', 'disposition', 'reason']
 
 #%%   
 #Set up the cleaningdata prameters and vetter list and vetting thresholds. 
@@ -50,7 +49,8 @@ config = {
 vetter_list = [vetters.Lpp(),
                    vetters.OddEven(),
                    vetters.TransitPhaseCoverage(),
-                   vetters.Sweet()]
+                   vetters.Sweet(),
+                   vetters.Centroid()]
 
 thresholds = {'snr' : 1,
               'norm_lpp' : 2.0,

@@ -4,6 +4,10 @@
 Created on Fri Feb 19 12:29:05 2021
 
 @author: smullally
+
+This reads in the simulated TCEs (gaussian noise and searched by corazon bls)
+Then it plots histogram of those TCEs snr.
+
 """
 import pandas as p
 import numpy as np

@@ -10,12 +10,12 @@ Generate light curves. Each function is a different way to generate a light curv
 """
 
 
-import eleanor
+
 import lightkurve as lk
 
 
 def eleanor_pca(ticid, sector, pxsize = 19):
-    
+    import eleanor   
     star = eleanor.Source(tic = ticid, sector = sector)
     
     data = eleanor.TargetData(star, height=pxsize, width=pxsize, bkg_size=31, 
@@ -26,7 +26,7 @@ def eleanor_pca(ticid, sector, pxsize = 19):
 #Could do a single sector FFI light curve wiih lightkurve
 
 def eleanor_corr(ticid, sector, pxsize = 19):
-    
+    import eleanor
     star = eleanor.Source(tic = ticid, sector = sector)
     
     data = eleanor.TargetData(star, height=pxsize, width=pxsize, bkg_size=31, 
