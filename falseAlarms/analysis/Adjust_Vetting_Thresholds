@@ -1,0 +1,150 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+The goal of this code is to compare the vetting thersholds for 
+both the planet and the 
+
+Created on Wed May 11 09:52:50 2022
+
+@author: smullally
+"""
+import sys
+sys.path.append("./")
+import numpy as np
+import pandas as pd
+import scipy.stats as stats
+import matplotlib.pyplot as plt
+import parmap  #This code lets me speed things up by doing archive callsin parallel
+import warnings
+warnings.filterwarnings('ignore')
+
+#%%
+#Useful Functions
+import exovetter.vetters as vet
+import corazon as crz
+import lightkurve as lk
+from exovetter.tce import Tce
+from exovetter import const 
+import astropy.units as u
+
+def get_lk(tcedf, author = "qlp", mission = "TESS", size = 11):
+    """Returns lc and tpf given a dataframe line"""
+
+    ticid = tcedf['tic'][4:]
+    sector = tcedf['sector']
+    
+    lc = crz.gen_lightcurve.hlsp(ticid, sector, author=author)
+    tpf = lk.search_tesscut(f"TIC {ticid}", sector = sector).download(cutout_size = size)
+    
+    return lc, tpf
+
+def make_tce(adf, offset = 0 * u.day):
+    
+    atce = Tce(period = adf['period'] * u.day,
+               epoch = adf['epoch'] *u.day,
+               epoch_offset = offset,
+               duration=adf['dur'] * u.hr, 
+               depth=adf['depth'] * const.ppm,
+               snr = adf['snr'])
+    
+    return atce
+
+def vet_tce(tce, lc, tpf, plot=False):
+    """Pull up plots of the full and folded light curve.
+        There are all plot from exovetter
+    """
+    
+    results = []
+    
+    tc = vet.TransitPhaseCoverage()
+    tpc = tc.run(tce,lc)
+    results.append(tpc)
+    
+    lpp = vet.Lpp()
+    lppvet = lpp.run(tce,lc)
+    results.append(lppvet)
+    
+    try:
+        mod = vet.ModShift()
+        modshift = mod.run(tce, lc)
+        if plot:
+            modshift.plot()
+        results.append(modshift)
+    except:
+        pass
+    
+    sweet = vet.Sweet()
+    sweetvet = sweet.run(tce,lc)
+    if plot:
+        sweet.plot()
+    results.append(sweetvet)
+    cent = vet.Centroid()
+    centout = cent.run(tce, tpf, plot=plot)
+    results.append(centout)
+    
+    #oe = vet.OddEven()
+    #oddeven = oe.run(tce,lc)
+    #oe.plot()
+    #results.append(oddeven)
+    
+    fold = vet.VizTransits(smooth=8, max_transits=5, transit_only=True)
+    ntransits = fold.run(tce, lc, plot=plot)
+    results.append(ntransits)
+    
+    return results
+    
+def vet_get_results(tcedfrow, plot=False, offset=const.btjd):
+    tcedf = tcedfrow[1]
+    alc, atpf = get_lk(tcedf) 
+    atce = make_tce(tcedf, offset=offset)
+    results = vet_tce(atce, alc, atpf, plot=plot)
+
+    tcevet = dict(tcedf)
+    if results is not None:
+        for r in results:
+            for k in r.keys():
+                if k[0:3] != "plo":  #Don't include plot data
+                    tcevet[k] = r[k]
+        
+    return tcevet    
+
+
+#%%
+
+#Using qlp
+notransit_file = "/Users/smullally/Science/tess_false_alarms/vet_results/joe_mar_2021/first-dataset/qlp_noebplanets_tcesum.csv"
+planet_file = "/Users/smullally/Science/tess_false_alarms/vet_results/joe_mar_2021/second-dataset/qlp_ebplanets_tcesum.csv"
+col_names = ["tic","pn","sector","period","epoch","depth","dur","snr","disp","reason", "match"]
+notransit_df = pd.read_csv(notransit_file, names=col_names)
+planet_df = pd.read_csv(planet_file, names=col_names)
+
+#Created using uncrowded_kepler_targets.py
+targetdf = pd.read_csv("/Users/smullally/Science/tess_false_alarms/keplerTargets/target_selection/target_tic_contamination_20210528.txt")
+print(len(targetdf))
+targetdf = targetdf.drop_duplicates(subset=['ticid','sector', 'Tmag'])
+print(len(targetdf))
+
+#Uniqueid
+notransit_df['uniqueid'] = list(map( lambda x, y : "%s-s%u" % (x, y), notransit_df['tic'], notransit_df['sector']))
+planet_df['uniqueid'] = list(map( lambda x, y : "%s-s%u" % (x, y), planet_df['tic'], planet_df['sector']))
+targetdf['uniqueid'] = list(map( lambda x, y : "TIC %s-s%u" % (x, y), targetdf['ticid'], targetdf['sector']))
+
+#Merge target information into qlp TCEs.
+notransit_tces = pd.merge(notransit_df, targetdf[['Tmag', 'Hmag', 'Vmag','contratio','aperture','uniqueid']], left_on="uniqueid", right_on="uniqueid", how="inner" )
+planet_tces = pd.merge(planet_df, targetdf[['Tmag', 'Hmag', 'Vmag','contratio','aperture','uniqueid']], left_on="uniqueid", right_on="uniqueid", how="inner" )
+
+print(len(notransit_df), len(notransit_tces), len(targetdf))
+print(len(np.unique(targetdf['uniqueid'])))
+print(len(planet_df), len(planet_tces))
+print(len(np.unique(notransit_df['uniqueid'])), len(np.unique(notransit_tces['uniqueid'])))
+
+#%%
+#Get N tces at random for testing
+#This cell can take some time depending on the size.
+r = np.random.randint(0, len(notransit_tces), size = 5)
+notransit_samp = notransit_tces.iloc[r]
+result = parmap.parmap(vet_get_results, notransit_samp.iterrows(),engine='multi')
+new = list(filter(lambda x : x is not None, result))
+vetted_notransit = pd.DataFrame(new)
+
+#%%
