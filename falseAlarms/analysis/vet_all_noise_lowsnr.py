@@ -24,6 +24,7 @@ import lightkurve as lk
 from exovetter.tce import Tce
 from exovetter import const 
 import astropy.units as u
+import corazon
 
 def get_lk(tcedf, author = "qlp", mission = "TESS", size = 11):
     """Returns lc and tpf given a dataframe line"""
@@ -32,9 +33,17 @@ def get_lk(tcedf, author = "qlp", mission = "TESS", size = 11):
     sector = tcedf['sector']
     
     lc = crz.gen_lightcurve.hlsp(ticid, sector, author=author)
+    
+    clean_lc = crz.planetSearch.clean_timeseries(lc['time'].value, 
+                    lc['flux'].value, lc['quality'].value, 95, 19, 4.5, sector) 
+    clean = lk.LightCurve(clean_lc[0],clean_lc[1])
+    clean.meta = lc.meta
+    clean.time.format = 'btjd'
+    
+    
     tpf = lk.search_tesscut(f"TIC {ticid}", sector = sector).download(cutout_size = size)
     
-    return lc, tpf
+    return clean, tpf
 
 def make_tce(adf, offset = 0 * u.day):
     
@@ -46,7 +55,7 @@ def make_tce(adf, offset = 0 * u.day):
                snr = adf['snr'])
     
     return atce
-
+#%%
 def vet_tce(tce, lc, tpf, plot=False):
     """Pull up plots of the full and folded light curve.
         There are all plot from exovetter

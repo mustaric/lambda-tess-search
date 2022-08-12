@@ -35,9 +35,28 @@ def get_lk(tcedf, author = "qlp", mission = "TESS", size = 11):
     sector = tcedf['sector']
     
     lc = crz.gen_lightcurve.hlsp(ticid, sector, author=author)
+    
+    clean_lc = crz.planetSearch.clean_timeseries(lc['time'].value, lc['flux'].value, lc['quality'].value, 95, 19, 4.5, sector) 
+    clean = lk.LightCurve(clean_lc[0],clean_lc[1])
+    clean.meta = lc.meta
+    clean.time.format = 'btjd'
+    
+    #tpf = lk.search_tesscut(f"TIC {ticid}", sector = sector).download(cutout_size = size)
+    
+    return clean
+"""
+def get_lk(tcedf, author = "qlp", mission = "TESS", size = 11):
+    #Returns lc and tpf given a dataframe line
+
+    ticid = tcedf['tic'][4:]
+    sector = tcedf['sector']
+    
+    lc = crz.gen_lightcurve.hlsp(ticid, sector, author=author)
+    
     tpf = lk.search_tesscut(f"TIC {ticid}", sector = sector).download(cutout_size = size)
     
     return lc, tpf
+"""
 
 def make_tce(adf, offset = 0 * u.day):
     
@@ -50,7 +69,7 @@ def make_tce(adf, offset = 0 * u.day):
     
     return atce
 
-def vet_tce(tce, lc, tpf, plot=False):
+def vet_tce(tce, lc, plot=False):
     """Pull up plots of the full and folded light curve.
         There are all plot from exovetter
     """
@@ -79,9 +98,9 @@ def vet_tce(tce, lc, tpf, plot=False):
     if plot:
         sweet.plot()
     results.append(sweetvet)
-    cent = vet.Centroid()
-    centout = cent.run(tce, tpf, plot=plot)
-    results.append(centout)
+    #cent = vet.Centroid()
+    #centout = cent.run(tce, tpf, plot=plot)
+    #results.append(centout)
     
     #oe = vet.OddEven()
     #oddeven = oe.run(tce,lc)
@@ -96,15 +115,9 @@ def vet_tce(tce, lc, tpf, plot=False):
     
 def vet_get_results(tcedfrow, plot=False, offset=const.btjd):
     tcedf = tcedfrow[1]
-    alc, atpf = get_lk(tcedf) 
+    alc = get_lk(tcedf) 
     atce = make_tce(tcedf, offset=offset)
-    if atpf is not None:
-        try:
-            results = vet_tce(atce, alc, atpf, plot=plot)
-        except AssertionError:
-            results = None
-    else:
-        results = None
+    results = vet_tce(atce, alc, plot=plot)
         
     tcevet = dict(tcedf)
     if results is not None:
@@ -162,14 +175,14 @@ print(len(np.unique(notransit_df['uniqueid'])), len(np.unique(notransit_tces['un
 #%%
 #Get N tces at random for testing
 #This cell can take some time depending on the size.
-r = np.random.randint(0, len(notransit_tces), size = 1000)
+r = np.random.randint(0, len(notransit_tces), size = 200)
 notransit_samp = notransit_tces.iloc[r]
 result = parmap.parmap(vet_get_results, notransit_samp.iterrows(),engine='multi')
 new = list(filter(lambda x : x is not None, result))
 vetted_notransit = pd.DataFrame(new)
 
 #%
-vetted_notransit.to_pickle("/Users/smullally/Science/tess_false_alarms/notransit_df_20220512.pickle")
+vetted_notransit.to_pickle("/Users/smullally/Science/tess_false_alarms/notransit_df_20220520.pickle")
 
 #%%
 r = np.random.randint(0, len(planet_tces), size = 200)
@@ -177,13 +190,13 @@ planet_samp = planet_tces.iloc[r]
 result = parmap.parmap(vet_get_results, planet_samp.iterrows(),engine='multi', timeout_sec=255)
 bnew = list(filter(lambda x : x is not None, result))
 vetted_planets = pd.DataFrame(bnew)
-vetted_planets.to_pickle("/Users/smullally/Science/tess_false_alarms/planets_df_20220512.pickle")
+vetted_planets.to_pickle("/Users/smullally/Science/tess_false_alarms/planets_df_20220520.pickle")
 
 #%%
 #Read in those pickle files and investiate poopulations
 
-vetted_planets = pd.read_pickle("/Users/smullally/Science/tess_false_alarms/planets_df_20220511.pickle")
-vetted_notransit = pd.read_pickle("/Users/smullally/Science/tess_false_alarms/notransit_df_20220512.pickle")
+vetted_planets = pd.read_pickle("/Users/smullally/Science/tess_false_alarms/planets_df_20220520.pickle")
+vetted_notransit = pd.read_pickle("/Users/smullally/Science/tess_false_alarms/notransit_df_20220520.pickle")
 
 #%%
 plt.plot(vetted_planets['period'], vetted_planets['norm_lpp'], 'r.')
